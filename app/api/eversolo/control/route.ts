@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { clients } from "@/lib/clients";
 import { triggerImmediatePoll } from "@/lib/poller/now-playing";
 
-type Action = "playOrPause" | "playNext" | "playLast";
+const CONTROL_ACTIONS = ["playOrPause", "playNext", "playLast"] as const;
+type Action = (typeof CONTROL_ACTIONS)[number];
 
 export async function POST(request: Request) {
   const { action } = (await request.json()) as { action: Action };
 
-  if (!["playOrPause", "playNext", "playLast"].includes(action)) {
+  if (!(CONTROL_ACTIONS as readonly string[]).includes(action)) {
     return NextResponse.json({ error: "invalid action" }, { status: 400 });
   }
 

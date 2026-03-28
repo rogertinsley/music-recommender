@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ArtistPageData } from "@/app/api/artist/[name]/route";
-
-function stripBio(raw: string): string {
-  const stripped = raw
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/Read more on Last\.fm\.?\s*$/i, "")
-    .trim();
-  return stripped;
-}
+import { stripBio } from "@/lib/utils/bio";
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat("en-GB").format(n);

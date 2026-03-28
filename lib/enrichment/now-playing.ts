@@ -4,6 +4,7 @@ import type { MusicBrainzClient } from "@/lib/musicbrainz/client";
 import type { FanartTVClient, ArtistImages } from "@/lib/fanart/client";
 import type { CoverArtArchiveClient } from "@/lib/coverart/client";
 import type { PlayState, AudioFormat } from "@/lib/eversolo/client";
+import { stripBio as stripBioText } from "@/lib/utils/bio";
 
 export interface EnrichedNowPlaying extends NowPlayingTrack {
   artistImages: ArtistImages | null;
@@ -16,11 +17,7 @@ export interface EnrichedNowPlaying extends NowPlayingTrack {
 }
 
 function stripBio(raw: string): string {
-  const stripped = raw
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/Read more on Last\.fm\.?\s*$/i, "")
-    .trim();
+  const stripped = stripBioText(raw);
   return stripped.length > 400
     ? stripped.slice(0, 400).trimEnd() + "…"
     : stripped;
