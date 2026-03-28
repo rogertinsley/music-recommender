@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { EnrichedNowPlaying } from "@/lib/enrichment/now-playing";
 import type { Lyrics, LyricLine } from "@/lib/lrclib/client";
+import type { PlayQueue } from "@/lib/eversolo/client";
 
 const CROSSFADE_MS = 800;
 
@@ -241,12 +242,131 @@ function LyricsPanel({
   );
 }
 
+function formatDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+function QueuePanel({ queue }: { queue: PlayQueue }) {
+  const activeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [queue]);
+
+  if (queue.tracks.length === 0) {
+    return (
+      <div className="absolute top-16 right-0 bottom-20 w-5/12 flex items-center justify-center">
+        <p className="text-zinc-600 text-sm">Queue is empty</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="absolute top-16 right-0 bottom-20 w-5/12 overflow-y-auto px-6 py-4"
+      style={{
+        maskImage:
+          "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
+      }}
+    >
+      <div className="flex flex-col gap-1">
+        {queue.tracks.map((track, i) => (
+          <div
+            key={`${track.id}-${i}`}
+            ref={track.active ? activeRef : null}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              track.active ? "bg-white/10" : "hover:bg-white/5"
+            }`}
+          >
+            <div className="flex-1 min-w-0">
+              <p
+                className={`text-sm truncate leading-tight ${
+                  track.active ? "text-white font-semibold" : "text-white/70"
+                }`}
+              >
+                {track.title}
+              </p>
+              <p className="text-xs text-zinc-500 truncate">{track.artist}</p>
+            </div>
+            <p className="text-xs text-zinc-600 tabular-nums shrink-0">
+              {formatDuration(track.durationMs)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type RightPanelTab = "queue" | "lyrics";
+
+function RightPanel({
+  lyrics,
+  queue,
+  positionMs,
+  playing,
+}: {
+  lyrics: Lyrics | null;
+  queue: PlayQueue | null;
+  positionMs: number;
+  playing: boolean;
+}) {
+  const hasLyrics = !!lyrics;
+  const hasQueue = !!queue && queue.tracks.length > 0;
+  const [tab, setTab] = useState<RightPanelTab>("queue");
+
+  // Default to lyrics tab when lyrics first arrive and queue is empty
+  useEffect(() => {
+    if (hasLyrics && !hasQueue) setTab("lyrics");
+    if (hasQueue && !hasLyrics) setTab("queue");
+  }, [hasLyrics, hasQueue]);
+
+  if (!hasLyrics && !hasQueue) return null;
+
+  return (
+    <>
+      {/* Tab toggle — only shown when both are available */}
+      {hasLyrics && hasQueue && (
+        <div className="absolute top-4 right-6 flex gap-1 z-10">
+          {(["queue", "lyrics"] as RightPanelTab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`text-xs px-3 py-1 rounded-full transition-colors capitalize ${
+                tab === t
+                  ? "bg-white/15 text-white"
+                  : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === "lyrics" && hasLyrics && (
+        <LyricsPanel
+          lyrics={lyrics!}
+          positionMs={positionMs}
+          playing={playing}
+        />
+      )}
+      {tab === "queue" && hasQueue && <QueuePanel queue={queue!} />}
+    </>
+  );
+}
+
 function NowPlayingCard({
   data,
   lyrics,
+  queue,
 }: {
   data: EnrichedNowPlaying | null;
   lyrics: Lyrics | null;
+  queue: PlayQueue | null;
 }) {
   const [displayMs, setDisplayMs] = useState(data?.positionMs ?? 0);
   const receivedAtRef = useRef(Date.now());
@@ -307,10 +427,13 @@ function NowPlayingCard({
         <div className="absolute inset-0 bg-zinc-950" />
       )}
 
-      {/* Lyrics panel — right half, time-synced */}
-      {lyrics && (
-        <LyricsPanel lyrics={lyrics} positionMs={displayMs} playing={playing} />
-      )}
+      {/* Right panel — queue or lyrics */}
+      <RightPanel
+        lyrics={lyrics}
+        queue={queue}
+        positionMs={displayMs}
+        playing={playing}
+      />
 
       {/* Bottom info block — sits above the progress bar */}
       <div className="absolute bottom-1 left-0 right-0 px-8 pb-6">
@@ -388,9 +511,23 @@ export function NowPlayingView() {
   const [loading, setLoading] = useState(true);
   const [fading, setFading] = useState(false);
   const [lyrics, setLyrics] = useState<Lyrics | null>(null);
+  const [queue, setQueue] = useState<PlayQueue | null>(null);
 
   const shownIdRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch and refresh queue every 5s
+  useEffect(() => {
+    const fetchQueue = () => {
+      fetch("/api/eversolo/queue")
+        .then((r) => r.json())
+        .then((data: PlayQueue) => setQueue(data))
+        .catch(() => null);
+    };
+    fetchQueue();
+    const id = setInterval(fetchQueue, 5_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Fetch lyrics whenever the track changes
   useEffect(() => {
@@ -486,7 +623,7 @@ export function NowPlayingView() {
           pointerEvents: "none",
         }}
       >
-        <NowPlayingCard data={latest} lyrics={null} />
+        <NowPlayingCard data={latest} lyrics={null} queue={null} />
       </div>
 
       {/* Displayed layer (front) — fades out */}
@@ -497,7 +634,7 @@ export function NowPlayingView() {
           transition: transitionStyle,
         }}
       >
-        <NowPlayingCard data={displayed} lyrics={lyrics} />
+        <NowPlayingCard data={displayed} lyrics={lyrics} queue={queue} />
       </div>
     </div>
   );

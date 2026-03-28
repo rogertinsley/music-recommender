@@ -24,6 +24,20 @@ export interface EversoloState {
 
 type ControlAction = "playOrPause" | "playNext" | "playLast";
 
+export interface QueueTrack {
+  id: number;
+  title: string;
+  artist: string;
+  album: string;
+  durationMs: number;
+  active: boolean;
+}
+
+export interface PlayQueue {
+  tracks: QueueTrack[];
+  total: number;
+}
+
 export class EversoloClient {
   private baseUrl: string;
 
@@ -80,6 +94,34 @@ export class EversoloClient {
     }
 
     return { track, playState };
+  }
+
+  async getPlayQueue(): Promise<PlayQueue> {
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/ZidooMusicControl/v2/getPlayQueue`
+      );
+      if (!res.ok) return { tracks: [], total: 0 };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = (await res.json()) as any;
+      if (!Array.isArray(data.array)) return { tracks: [], total: 0 };
+      return {
+        total: data.total ?? data.array.length,
+        tracks: data.array.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (t: any): QueueTrack => ({
+            id: t.id,
+            title: t.title ?? "",
+            artist: t.artist ?? "",
+            album: t.album ?? "",
+            durationMs: t.duration ?? 0,
+            active: t.active === true,
+          })
+        ),
+      };
+    } catch {
+      return { tracks: [], total: 0 };
+    }
   }
 
   async isArtistInLibrary(name: string): Promise<boolean> {
