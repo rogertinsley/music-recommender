@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Artist {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  mbid      String?  @unique
+  bio       String?
+  playCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  artistImages ArtistImage[]
+}
+
+model Recommendation {
+  id           String   @id @default(cuid())
+  artistName   String
+  sourceArtist String
+  score        Float
+  tags         String[]
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model NewRelease {
+  id          String   @id @default(cuid())
+  artistName  String
+  artistMbid  String?
+  title       String
+  releaseDate DateTime
+  releaseType String
+  mbid        String?  @unique
+  coverArtUrl String?
+  playCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([releaseDate])
+  @@index([playCount])
+}
+
+model ArtistImage {
+  id        String   @id @default(cuid())
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  imageType String
+  url       String
+  createdAt DateTime @default(now())
+
+  @@unique([artistId, imageType])
+}
