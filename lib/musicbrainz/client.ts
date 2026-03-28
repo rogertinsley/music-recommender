@@ -75,6 +75,21 @@ export class MusicBrainzClient {
     }
   }
 
+  async getReleaseGroupYear(mbid: string): Promise<number | null> {
+    try {
+      const data = await this.fetch<{ "first-release-date"?: string }>(
+        `/release-group/${mbid}`,
+        {}
+      );
+      const date = data["first-release-date"];
+      if (!date) return null;
+      const year = parseInt(date.slice(0, 4), 10);
+      return isNaN(year) ? null : year;
+    } catch {
+      return null;
+    }
+  }
+
   async searchArtist(name: string): Promise<string | null> {
     const data = await this.fetch<{
       artists: Array<{ id: string; name: string; score: number }>;

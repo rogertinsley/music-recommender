@@ -166,6 +166,9 @@ export function ArtistView({ artistName }: { artistName: string }) {
                   )}
                 </div>
                 <p className="text-xs text-zinc-300 truncate">{album.name}</p>
+                {album.year && (
+                  <p className="text-xs text-zinc-600">{album.year}</p>
+                )}
               </div>
             ))}
           </div>

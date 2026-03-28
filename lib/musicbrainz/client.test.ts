@@ -135,6 +135,35 @@ describe("MusicBrainzClient", () => {
     });
   });
 
+  describe("getReleaseGroupYear", () => {
+    it("returns the year from first-release-date", async () => {
+      mockFetch({
+        "first-release-date": "1998-09-22",
+        title: "Dizzy Up the Girl",
+      });
+
+      const year = await client.getReleaseGroupYear("some-mbid");
+
+      expect(year).toBe(1998);
+    });
+
+    it("returns null when first-release-date is missing", async () => {
+      mockFetch({ "first-release-date": "", title: "Unknown" });
+
+      const year = await client.getReleaseGroupYear("some-mbid");
+
+      expect(year).toBeNull();
+    });
+
+    it("returns null on API error", async () => {
+      mockFetch({}, false);
+
+      const year = await client.getReleaseGroupYear("some-mbid");
+
+      expect(year).toBeNull();
+    });
+  });
+
   describe("searchRelease", () => {
     it("returns release-group MBID for matching artist and album", async () => {
       mockFetch({

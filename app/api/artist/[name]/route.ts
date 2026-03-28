@@ -15,7 +15,9 @@ export interface ArtistPageData {
   userPlayCount: number | null;
   artistImages: ArtistImages | null;
   topTracks: TopTrack[];
-  topAlbums: Array<TopAlbum & { coverArtUrl: string | null }>;
+  topAlbums: Array<
+    TopAlbum & { coverArtUrl: string | null; year: number | null }
+  >;
   similarArtists: SimilarArtist[];
 }
 
@@ -48,12 +50,18 @@ export async function GET(
 
   const topAlbumsWithArt = await Promise.all(
     topAlbums.map(async (album) => {
-      const coverArtUrl = album.mbid
-        ? await coverArt.getAlbumArtByReleaseGroup(album.mbid).catch(() => null)
-        : null;
+      const [coverArtUrl, year] = await Promise.all([
+        album.mbid
+          ? coverArt.getAlbumArtByReleaseGroup(album.mbid).catch(() => null)
+          : null,
+        album.mbid
+          ? musicBrainz.getReleaseGroupYear(album.mbid).catch(() => null)
+          : null,
+      ]);
       return {
         ...album,
         coverArtUrl: coverArtUrl ?? album.imageUrl,
+        year,
       };
     })
   );
