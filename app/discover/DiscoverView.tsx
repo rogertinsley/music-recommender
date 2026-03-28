@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ArtistImages } from "@/lib/fanart/client";
+import { timeAgo } from "@/lib/utils/time";
 
 interface NewRelease {
   id: string;
@@ -41,16 +42,6 @@ const TYPE_COLORS: Record<string, string> = {
   EP: "bg-blue-500/20 text-blue-300",
   Single: "bg-emerald-500/20 text-emerald-300",
 };
-
-function timeAgo(isoString: string): string {
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (

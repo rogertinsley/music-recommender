@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { clients } from "@/lib/clients";
-
-const LASTFM_PLACEHOLDER = "2a96cbd8b46e442fc41c2b86b821562f";
+import { LASTFM_PLACEHOLDER } from "@/lib/lastfm/constants";
 
 export async function GET() {
   const [releases, recommendations, recentTracks] = await Promise.allSettled([

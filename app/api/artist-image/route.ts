@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { clients } from "@/lib/clients";
+import { getArtistImages } from "@/lib/artist-image/service";
 
 const CACHE_TTL = 14 * 24 * 60 * 60; // 2 weeks
 
@@ -13,21 +14,14 @@ export async function GET(request: Request) {
   const cached = await redis.get(cacheKey);
   if (cached) return NextResponse.json(JSON.parse(cached));
 
-  const { musicBrainz, fanartTV } = clients;
-
-  let mbid: string | null;
+  let images: Awaited<ReturnType<typeof getArtistImages>>;
   try {
-    mbid = await musicBrainz.searchArtist(name);
+    images = await getArtistImages(name, clients);
   } catch {
     // MusicBrainz error — don't cache, retry next request
     return NextResponse.json(null);
   }
-  if (!mbid) {
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(null));
-    return NextResponse.json(null);
-  }
 
-  const images = await fanartTV.getArtistImages(mbid).catch(() => null);
   await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(images));
   return NextResponse.json(images);
 }
