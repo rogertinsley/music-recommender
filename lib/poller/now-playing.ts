@@ -1,7 +1,4 @@
-import { LastFMClient } from "@/lib/lastfm/client";
-import { MusicBrainzClient } from "@/lib/musicbrainz/client";
-import { FanartTVClient } from "@/lib/fanart/client";
-import { CoverArtArchiveClient } from "@/lib/coverart/client";
+import { clients } from "@/lib/clients";
 import { enrichNowPlaying } from "@/lib/enrichment/now-playing";
 import { redis } from "@/lib/redis";
 
@@ -10,10 +7,7 @@ const POLL_INTERVAL_MS = 30_000;
 const CACHE_TTL_SECONDS = 60;
 
 export function startNowPlayingPoller(): void {
-  const lastfm = new LastFMClient(process.env.LASTFM_API_KEY ?? "");
-  const musicBrainz = new MusicBrainzClient();
-  const fanartTV = new FanartTVClient(process.env.FANART_TV_API_KEY ?? "");
-  const coverArt = new CoverArtArchiveClient();
+  const { lastfm, musicBrainz, fanartTV, coverArt } = clients;
   const username = process.env.LASTFM_USERNAME ?? "";
 
   const poll = async () => {

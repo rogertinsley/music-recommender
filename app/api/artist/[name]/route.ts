@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
-import { LastFMClient } from "@/lib/lastfm/client";
-import { MusicBrainzClient } from "@/lib/musicbrainz/client";
-import { FanartTVClient } from "@/lib/fanart/client";
-import { CoverArtArchiveClient } from "@/lib/coverart/client";
+import { clients } from "@/lib/clients";
 import type { ArtistImages } from "@/lib/fanart/client";
 import type { TopTrack, TopAlbum, SimilarArtist } from "@/lib/lastfm/types";
 
@@ -33,10 +30,7 @@ export async function GET(
   const cached = await redis.get(cacheKey);
   if (cached) return NextResponse.json(JSON.parse(cached) as ArtistPageData);
 
-  const lastfm = new LastFMClient(process.env.LASTFM_API_KEY ?? "");
-  const musicBrainz = new MusicBrainzClient();
-  const fanartTV = new FanartTVClient(process.env.FANART_TV_API_KEY ?? "");
-  const coverArt = new CoverArtArchiveClient();
+  const { lastfm, musicBrainz, fanartTV, coverArt } = clients;
   const username = process.env.LASTFM_USERNAME ?? "";
 
   const [artistInfo, topTracks, topAlbums, similarArtists, mbid] =

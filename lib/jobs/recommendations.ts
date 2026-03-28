@@ -1,4 +1,4 @@
-import { LastFMClient } from "@/lib/lastfm/client";
+import { clients } from "@/lib/clients";
 import { recommend } from "@/lib/recommendations/engine";
 import { prisma } from "@/lib/prisma";
 
@@ -20,7 +20,7 @@ async function runRecommendationsJob(): Promise<void> {
 
   console.log("[RecommendationsJob] running…");
 
-  const lastfm = new LastFMClient(process.env.LASTFM_API_KEY ?? "");
+  const { lastfm } = clients;
   const username = process.env.LASTFM_USERNAME ?? "";
 
   const [topArtists, userTopTags] = await Promise.all([

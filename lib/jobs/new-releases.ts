@@ -1,6 +1,4 @@
-import { LastFMClient } from "@/lib/lastfm/client";
-import { MusicBrainzClient } from "@/lib/musicbrainz/client";
-import { CoverArtArchiveClient } from "@/lib/coverart/client";
+import { clients } from "@/lib/clients";
 import { NewReleasesService } from "@/lib/new-releases/service";
 import { prisma } from "@/lib/prisma";
 
@@ -28,9 +26,7 @@ async function runNewReleasesJob(): Promise<void> {
 
   console.log("[NewReleasesJob] running…");
 
-  const lastfm = new LastFMClient(process.env.LASTFM_API_KEY ?? "");
-  const musicBrainz = new MusicBrainzClient();
-  const coverArt = new CoverArtArchiveClient();
+  const { lastfm, musicBrainz, coverArt } = clients;
   const service = new NewReleasesService(lastfm, musicBrainz);
 
   const releases = await service.getNewReleases(
