@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { EnrichedNowPlaying } from "@/lib/enrichment/now-playing";
+import type { Lyrics, LyricLine } from "@/lib/lrclib/client";
 
 const CROSSFADE_MS = 800;
 
@@ -148,7 +149,105 @@ function EqualizerBars({ playing }: { playing: boolean }) {
   );
 }
 
-function NowPlayingCard({ data }: { data: EnrichedNowPlaying | null }) {
+function currentLineIndex(lines: LyricLine[], positionMs: number): number {
+  let idx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].timeMs <= positionMs) idx = i;
+    else break;
+  }
+  return idx;
+}
+
+function LyricsPanel({
+  lyrics,
+  positionMs,
+  playing,
+}: {
+  lyrics: Lyrics;
+  positionMs: number;
+  playing: boolean;
+}) {
+  const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const lines = lyrics.synced;
+  const activeIdx = lines ? currentLineIndex(lines, positionMs) : -1;
+
+  // Auto-scroll to active line
+  useEffect(() => {
+    if (!lines || activeIdx < 0) return;
+    const el = lineRefs.current[activeIdx];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeIdx, lines]);
+
+  if (!lines) {
+    // Plain lyrics fallback
+    if (!lyrics.plain) return null;
+    return (
+      <div
+        ref={containerRef}
+        className="absolute top-16 right-0 bottom-20 w-5/12 overflow-y-auto px-8 py-6"
+        style={{
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
+        }}
+      >
+        <pre className="text-sm text-white/50 whitespace-pre-wrap leading-7 font-sans">
+          {lyrics.plain}
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute top-16 right-0 bottom-20 w-5/12 overflow-y-auto px-8 py-6"
+      style={{
+        maskImage:
+          "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
+      }}
+    >
+      <div className="flex flex-col gap-3">
+        {lines.map((line, i) => {
+          const isActive = i === activeIdx;
+          const isNear = Math.abs(i - activeIdx) <= 2;
+          return (
+            <p
+              key={i}
+              ref={(el) => {
+                lineRefs.current[i] = el;
+              }}
+              className="leading-snug transition-all duration-300"
+              style={{
+                fontSize: isActive ? "1.35rem" : isNear ? "1rem" : "0.9rem",
+                fontWeight: isActive ? 700 : 400,
+                color: isActive
+                  ? "rgba(255,255,255,1)"
+                  : isNear
+                    ? "rgba(255,255,255,0.45)"
+                    : "rgba(255,255,255,0.2)",
+                opacity: playing || !isActive ? 1 : 0.7,
+              }}
+            >
+              {line.text || "\u00A0"}
+            </p>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NowPlayingCard({
+  data,
+  lyrics,
+}: {
+  data: EnrichedNowPlaying | null;
+  lyrics: Lyrics | null;
+}) {
   const [displayMs, setDisplayMs] = useState(data?.positionMs ?? 0);
   const receivedAtRef = useRef(Date.now());
 
@@ -163,7 +262,7 @@ function NowPlayingCard({ data }: { data: EnrichedNowPlaying | null }) {
     const startedAt = receivedAtRef.current;
     const id = setInterval(() => {
       setDisplayMs(startPos + (Date.now() - startedAt));
-    }, 1000);
+    }, 250);
     return () => clearInterval(id);
   }, [data?.positionMs, data?.playState]);
 
@@ -206,6 +305,11 @@ function NowPlayingCard({ data }: { data: EnrichedNowPlaying | null }) {
         </>
       ) : (
         <div className="absolute inset-0 bg-zinc-950" />
+      )}
+
+      {/* Lyrics panel — right half, time-synced */}
+      {lyrics && (
+        <LyricsPanel lyrics={lyrics} positionMs={displayMs} playing={playing} />
       )}
 
       {/* Bottom info block — sits above the progress bar */}
@@ -283,9 +387,33 @@ export function NowPlayingView() {
   const [displayed, setDisplayed] = useState<EnrichedNowPlaying | null>(null);
   const [loading, setLoading] = useState(true);
   const [fading, setFading] = useState(false);
+  const [lyrics, setLyrics] = useState<Lyrics | null>(null);
 
   const shownIdRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch lyrics whenever the track changes
+  useEffect(() => {
+    if (!displayed) {
+      setLyrics(null);
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      artist: displayed.artistName,
+      title: displayed.trackName,
+    });
+    if (displayed.albumName) params.set("album", displayed.albumName);
+    if (displayed.durationMs > 0)
+      params.set("duration", String(Math.round(displayed.durationMs / 1000)));
+
+    fetch(`/api/lyrics?${params}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((data: Lyrics | null) => setLyrics(data))
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [trackId(displayed)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const es = new EventSource("/api/now-playing/stream");
@@ -347,7 +475,7 @@ export function NowPlayingView() {
           pointerEvents: "none",
         }}
       >
-        <NowPlayingCard data={latest} />
+        <NowPlayingCard data={latest} lyrics={null} />
       </div>
 
       {/* Displayed layer (front) — fades out */}
@@ -358,7 +486,7 @@ export function NowPlayingView() {
           transition: transitionStyle,
         }}
       >
-        <NowPlayingCard data={displayed} />
+        <NowPlayingCard data={displayed} lyrics={lyrics} />
       </div>
     </div>
   );

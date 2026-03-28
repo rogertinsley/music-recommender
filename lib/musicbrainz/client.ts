@@ -10,17 +10,20 @@ const USER_AGENT = "MusicRecommender/1.0";
 
 export class MusicBrainzClient {
   private lastRequestTime = 0;
+  private requestQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly minRequestInterval = 1000) {}
 
-  private async throttle(): Promise<void> {
-    const elapsed = Date.now() - this.lastRequestTime;
-    if (elapsed < this.minRequestInterval) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.minRequestInterval - elapsed)
-      );
-    }
-    this.lastRequestTime = Date.now();
+  private throttle(): Promise<void> {
+    const queued = this.requestQueue.then(async () => {
+      const elapsed = Date.now() - this.lastRequestTime;
+      const delay = this.minRequestInterval - elapsed;
+      if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+      this.lastRequestTime = Date.now();
+    });
+    // Keep the chain alive even if a request fails
+    this.requestQueue = queued.catch(() => {});
+    return queued;
   }
 
   private async fetch<T>(

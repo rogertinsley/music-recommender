@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { hostname: "*.coverartarchive.org" },
       { hostname: "*.archive.org" },
       { protocol: "https", hostname: "*.mzstatic.com" },
+      { hostname: "lastfm.freetls.fastly.net" },
     ],
   },
 };

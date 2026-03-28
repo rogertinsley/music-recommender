@@ -3,6 +3,7 @@ import { MusicBrainzClient } from "@/lib/musicbrainz/client";
 import { FanartTVClient } from "@/lib/fanart/client";
 import { CoverArtArchiveClient } from "@/lib/coverart/client";
 import { EversoloClient } from "@/lib/eversolo/client";
+import { LRCLIBClient } from "@/lib/lrclib/client";
 
 export interface ApiClients {
   lastfm: LastFMClient;
@@ -10,6 +11,7 @@ export interface ApiClients {
   fanartTV: FanartTVClient;
   coverArt: CoverArtArchiveClient;
   eversolo: EversoloClient;
+  lrclib: LRCLIBClient;
 }
 
 export const clients: ApiClients = {
@@ -18,4 +20,5 @@ export const clients: ApiClients = {
   fanartTV: new FanartTVClient(process.env.FANART_TV_API_KEY ?? ""),
   coverArt: new CoverArtArchiveClient(),
   eversolo: new EversoloClient(process.env.EVERSOLO_HOST ?? "192.168.1.138"),
+  lrclib: new LRCLIBClient(),
 };

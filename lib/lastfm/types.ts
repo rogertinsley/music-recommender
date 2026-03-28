@@ -55,3 +55,11 @@ export interface TopAlbum {
   mbid: string | null;
   rank: number;
 }
+
+export interface RecentTrack {
+  trackName: string;
+  artistName: string;
+  albumName: string | null;
+  albumArtUrl: string | null;
+  scrobbledAt: Date | null;
+}

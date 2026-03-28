@@ -7,6 +7,7 @@ export type {
   AlbumInfo,
   TopTrack,
   TopAlbum,
+  RecentTrack,
   Period,
 } from "./types";
 import type {
@@ -18,6 +19,7 @@ import type {
   AlbumInfo,
   TopTrack,
   TopAlbum,
+  RecentTrack,
   Period,
 } from "./types";
 
@@ -174,6 +176,40 @@ export class LastFMClient {
       playCount: parseInt(a.playcount, 10),
       rank: parseInt(a["@attr"].rank, 10),
     }));
+  }
+
+  async getRecentTracks(username: string, limit = 15): Promise<RecentTrack[]> {
+    const data = await this.fetch<{
+      recenttracks: {
+        track: Array<{
+          "@attr"?: { nowplaying?: string };
+          name: string;
+          artist: { "#text": string };
+          album: { "#text": string };
+          image: Array<{ "#text": string; size: string }>;
+          date?: { uts: string };
+        }>;
+      };
+    }>({
+      method: "user.getRecentTracks",
+      user: username,
+      limit: String(limit),
+    });
+
+    return data.recenttracks.track
+      .filter((t) => !t["@attr"]?.nowplaying && t.date)
+      .map((t) => {
+        const img =
+          t.image.find((i) => i.size === "extralarge") ??
+          t.image.find((i) => i.size === "large");
+        return {
+          trackName: t.name,
+          artistName: t.artist["#text"],
+          albumName: t.album["#text"] || null,
+          albumArtUrl: img?.["#text"] || null,
+          scrobbledAt: new Date(parseInt(t.date!.uts, 10) * 1000),
+        };
+      });
   }
 
   async getNowPlaying(username: string): Promise<NowPlayingTrack | null> {

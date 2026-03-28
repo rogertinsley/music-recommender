@@ -255,6 +255,81 @@ describe("LastFMClient", () => {
     });
   });
 
+  describe("getRecentTracks", () => {
+    it("returns scrobbled tracks with date and album art", async () => {
+      mockFetch({
+        recenttracks: {
+          track: [
+            {
+              name: "Creep",
+              artist: { "#text": "Radiohead" },
+              album: { "#text": "Pablo Honey" },
+              image: [
+                { "#text": "small.jpg", size: "small" },
+                { "#text": "large.jpg", size: "extralarge" },
+              ],
+              date: { uts: "1711620000" },
+            },
+            {
+              name: "Karma Police",
+              artist: { "#text": "Radiohead" },
+              album: { "#text": "OK Computer" },
+              image: [{ "#text": "", size: "extralarge" }],
+              date: { uts: "1711616400" },
+            },
+          ],
+        },
+      });
+
+      const tracks = await client.getRecentTracks("testuser", 2);
+
+      expect(tracks).toEqual([
+        {
+          trackName: "Creep",
+          artistName: "Radiohead",
+          albumName: "Pablo Honey",
+          albumArtUrl: "large.jpg",
+          scrobbledAt: new Date(1711620000 * 1000),
+        },
+        {
+          trackName: "Karma Police",
+          artistName: "Radiohead",
+          albumName: "OK Computer",
+          albumArtUrl: null,
+          scrobbledAt: new Date(1711616400 * 1000),
+        },
+      ]);
+    });
+
+    it("skips the now-playing track (no date)", async () => {
+      mockFetch({
+        recenttracks: {
+          track: [
+            {
+              "@attr": { nowplaying: "true" },
+              name: "Exit Music",
+              artist: { "#text": "Radiohead" },
+              album: { "#text": "OK Computer" },
+              image: [],
+            },
+            {
+              name: "Creep",
+              artist: { "#text": "Radiohead" },
+              album: { "#text": "Pablo Honey" },
+              image: [],
+              date: { uts: "1711620000" },
+            },
+          ],
+        },
+      });
+
+      const tracks = await client.getRecentTracks("testuser", 10);
+
+      expect(tracks).toHaveLength(1);
+      expect(tracks[0].trackName).toBe("Creep");
+    });
+  });
+
   describe("getNowPlaying", () => {
     it("returns null when nothing is playing", async () => {
       mockFetch({

@@ -15,7 +15,13 @@ export async function GET(request: Request) {
 
   const { musicBrainz, fanartTV } = clients;
 
-  const mbid = await musicBrainz.searchArtist(name).catch(() => null);
+  let mbid: string | null;
+  try {
+    mbid = await musicBrainz.searchArtist(name);
+  } catch {
+    // MusicBrainz error — don't cache, retry next request
+    return NextResponse.json(null);
+  }
   if (!mbid) {
     await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(null));
     return NextResponse.json(null);
