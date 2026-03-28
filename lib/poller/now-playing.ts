@@ -10,10 +10,16 @@ function trackKey(artist: string, title: string): string {
   return `${artist}:::${title}`;
 }
 
+// Exposed so the control API can trigger an immediate poll after a command
+let scheduledPoll: (() => Promise<void>) | null = null;
+
+export function triggerImmediatePoll(): void {
+  setTimeout(() => scheduledPoll?.(), 300);
+}
+
 export function startNowPlayingPoller(): void {
   const { lastfm, musicBrainz, fanartTV, coverArt, eversolo } = clients;
 
-  // Cache enrichment so we don't hit Last.FM/MusicBrainz on every 10s poll
   let cachedKey: string | null = null;
   let cachedEnrichment: Awaited<ReturnType<typeof enrichNowPlaying>> | null =
     null;
@@ -54,6 +60,7 @@ export function startNowPlayingPoller(): void {
         positionMs: track.positionMs,
         durationMs: track.durationMs,
         playState,
+        audioFormat: track.audioFormat,
       };
 
       await redis.setex(
@@ -66,6 +73,7 @@ export function startNowPlayingPoller(): void {
     }
   };
 
+  scheduledPoll = poll;
   void poll();
   setInterval(poll, POLL_INTERVAL_MS);
 }

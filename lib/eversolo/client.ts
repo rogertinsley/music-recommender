@@ -1,5 +1,12 @@
 export type PlayState = "playing" | "paused" | "idle";
 
+export interface AudioFormat {
+  extension: string;
+  sampleRate: string;
+  bits: string;
+  channels: number;
+}
+
 export interface EversoloTrack {
   title: string;
   artist: string;
@@ -7,12 +14,15 @@ export interface EversoloTrack {
   durationMs: number;
   positionMs: number;
   albumArtUrl: string | null;
+  audioFormat: AudioFormat | null;
 }
 
 export interface EversoloState {
   track: EversoloTrack | null;
   playState: PlayState;
 }
+
+type ControlAction = "playOrPause" | "playNext" | "playLast";
 
 export class EversoloClient {
   private baseUrl: string;
@@ -42,6 +52,15 @@ export class EversoloClient {
         durationMs: data.duration ?? 0,
         positionMs: data.position ?? 0,
         albumArtUrl: pm.albumArtBig ?? pm.albumArt ?? null,
+        audioFormat:
+          pm.extension || pm.sampleRate
+            ? {
+                extension: pm.extension ?? "",
+                sampleRate: pm.sampleRate ?? "",
+                bits: pm.bits ?? "",
+                channels: pm.channels ?? 2,
+              }
+            : null,
       };
     }
 
@@ -55,10 +74,18 @@ export class EversoloClient {
           durationMs: data.duration ?? 0,
           positionMs: data.position ?? 0,
           albumArtUrl: ai.albumArt ?? null,
+          audioFormat: null,
         };
       }
     }
 
     return { track, playState };
+  }
+
+  async control(action: ControlAction): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/ZidooMusicControl/v2/${action}`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
   }
 }

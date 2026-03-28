@@ -84,10 +84,12 @@ export class MusicBrainzClient {
     artistName: string,
     albumName: string
   ): Promise<string | null> {
+    // MusicBrainz indexes by sort name which strips leading articles
+    const sortName = artistName.replace(/^(the|a|an)\s+/i, "");
     const data = await this.fetch<{
       "release-groups": Array<{ id: string; score: number }>;
     }>("/release-group", {
-      query: `artist:"${artistName}" AND releasegroup:"${albumName}"`,
+      query: `artist:"${sortName}" AND releasegroup:"${albumName}"`,
     });
 
     return data["release-groups"][0]?.id ?? null;

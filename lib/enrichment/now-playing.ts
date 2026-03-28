@@ -3,7 +3,7 @@ import type { LastFMClient } from "@/lib/lastfm/client";
 import type { MusicBrainzClient } from "@/lib/musicbrainz/client";
 import type { FanartTVClient, ArtistImages } from "@/lib/fanart/client";
 import type { CoverArtArchiveClient } from "@/lib/coverart/client";
-import type { PlayState } from "@/lib/eversolo/client";
+import type { PlayState, AudioFormat } from "@/lib/eversolo/client";
 
 export interface EnrichedNowPlaying extends NowPlayingTrack {
   artistImages: ArtistImages | null;
@@ -12,6 +12,7 @@ export interface EnrichedNowPlaying extends NowPlayingTrack {
   positionMs: number;
   durationMs: number;
   playState: PlayState;
+  audioFormat: AudioFormat | null;
 }
 
 function stripBio(raw: string): string {

@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { EnrichedNowPlaying } from "@/lib/enrichment/now-playing";
 
-const POLL_INTERVAL_MS = 3_000;
 const CROSSFADE_MS = 800;
 
 function trackId(data: EnrichedNowPlaying | null): string {
@@ -18,6 +17,107 @@ function formatTime(ms: number): string {
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
   return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+async function sendControl(action: string) {
+  await fetch("/api/eversolo/control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+}
+
+function PlayerControls({
+  playState,
+}: {
+  playState: "playing" | "paused" | "idle";
+}) {
+  const [busy, setBusy] = useState(false);
+  // Optimistic: flip immediately on click, SSE corrects within ~300ms
+  const [optimisticState, setOptimisticState] = useState<
+    "playing" | "paused" | "idle" | null
+  >(null);
+  const displayState = optimisticState ?? playState;
+
+  // Clear optimistic state once SSE confirms the real state
+  useEffect(() => {
+    setOptimisticState(null);
+  }, [playState]);
+
+  const control = async (action: string) => {
+    if (busy) return;
+    setBusy(true);
+    if (action === "playOrPause") {
+      setOptimisticState(displayState === "playing" ? "paused" : "playing");
+    }
+    try {
+      await sendControl(action);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-5 shrink-0">
+      <button
+        onClick={() => control("playLast")}
+        disabled={busy}
+        className="text-white/70 hover:text-white transition-colors disabled:opacity-40"
+        aria-label="Previous"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+        </svg>
+      </button>
+
+      <button
+        onClick={() => control("playOrPause")}
+        disabled={busy}
+        className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-40 shrink-0"
+        aria-label={displayState === "playing" ? "Pause" : "Play"}
+      >
+        {displayState === "playing" ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        )}
+      </button>
+
+      <button
+        onClick={() => control("playNext")}
+        disabled={busy}
+        className="text-white/70 hover:text-white transition-colors disabled:opacity-40"
+        aria-label="Next"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 18l8.5-6L6 6v12zm2.5-6 5.5 3.93V8.07L8.5 12zM16 6h2v12h-2z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function AudioQualityBadge({
+  format,
+}: {
+  format: EnrichedNowPlaying["audioFormat"];
+}) {
+  if (!format?.extension) return null;
+  const parts = [
+    format.extension.toUpperCase(),
+    format.bits && format.bits !== "0" ? `${format.bits}-bit` : null,
+    format.sampleRate || null,
+  ].filter(Boolean);
+  if (parts.length === 0) return null;
+  return (
+    <p className="text-xs text-zinc-500 tabular-nums shrink-0">
+      {parts.join(" · ")}
+    </p>
+  );
 }
 
 function EqualizerBars({ playing }: { playing: boolean }) {
@@ -112,13 +212,13 @@ function NowPlayingCard({ data }: { data: EnrichedNowPlaying | null }) {
       <div className="absolute bottom-1 left-0 right-0 px-8 pb-6">
         <div className="flex items-center gap-5">
           {/* Album art thumbnail */}
-          <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-zinc-800 shadow-xl">
+          <div className="w-24 h-24 rounded-md overflow-hidden shrink-0 bg-zinc-800 shadow-xl">
             {data.albumArtUrl ? (
               <Image
                 src={data.albumArtUrl}
                 alt={data.albumName ?? data.trackName}
-                width={56}
-                height={56}
+                width={96}
+                height={96}
                 className="object-cover w-full h-full"
               />
             ) : (
@@ -146,20 +246,24 @@ function NowPlayingCard({ data }: { data: EnrichedNowPlaying | null }) {
             )}
           </div>
 
-          {/* Equalizer + status */}
-          <div className="flex items-center gap-2 shrink-0">
-            <EqualizerBars playing={playing} />
-            <span className="text-xs text-emerald-400 font-medium">
-              {playing ? "Now Playing" : "Paused"}
-            </span>
-          </div>
+          {/* Playback controls */}
+          <PlayerControls playState={data.playState} />
 
-          {/* Time */}
-          {data.durationMs > 0 && (
-            <p className="text-xs text-zinc-500 tabular-nums shrink-0">
-              {formatTime(displayMs)} / {formatTime(data.durationMs)}
-            </p>
-          )}
+          {/* Audio quality + eq + time — fixed width to prevent layout shift */}
+          <div className="flex items-center gap-3 shrink-0 justify-end">
+            <AudioQualityBadge format={data.audioFormat} />
+            <div className="flex items-center gap-2 w-28 shrink-0">
+              <EqualizerBars playing={playing} />
+              <span className="text-xs text-emerald-400 font-medium whitespace-nowrap">
+                {playing ? "Now Playing" : "Paused"}
+              </span>
+            </div>
+            {data.durationMs > 0 && (
+              <p className="text-xs text-zinc-500 tabular-nums whitespace-nowrap">
+                {formatTime(displayMs)} / {formatTime(data.durationMs)}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -184,21 +288,16 @@ export function NowPlayingView() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const fetchTrack = async () => {
-      try {
-        const res = await fetch("/api/now-playing");
-        const json: EnrichedNowPlaying | null = await res.json();
-        setLatest(json);
-        setLoading(false);
-      } catch {
-        // keep previous state on error
-      }
+    const es = new EventSource("/api/now-playing/stream");
+
+    es.onmessage = (event: MessageEvent<string>) => {
+      const json: EnrichedNowPlaying | null = JSON.parse(event.data);
+      setLatest(json);
+      setLoading(false);
     };
 
-    void fetchTrack();
-    const interval = setInterval(fetchTrack, POLL_INTERVAL_MS);
     return () => {
-      clearInterval(interval);
+      es.close();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
