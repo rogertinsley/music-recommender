@@ -82,6 +82,19 @@ export class EversoloClient {
     return { track, playState };
   }
 
+  async isArtistInLibrary(name: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/ZidooMusicControl/v2/searchArtistV2?key=${encodeURIComponent(name)}&start=0&count=1`
+      );
+      if (!res.ok) return false;
+      const data = (await res.json()) as { total?: number };
+      return (data.total ?? 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+
   async control(action: ControlAction): Promise<void> {
     const res = await fetch(`${this.baseUrl}/ZidooMusicControl/v2/${action}`, {
       method: "POST",

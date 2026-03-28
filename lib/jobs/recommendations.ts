@@ -1,6 +1,7 @@
 import { clients } from "@/lib/clients";
 import { recommend } from "@/lib/recommendations/engine";
 import { prisma } from "@/lib/prisma";
+import { startJob } from "@/lib/jobs/runner";
 
 const JOB_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const STALENESS_HOURS = 20;
@@ -72,14 +73,5 @@ async function runRecommendationsJob(): Promise<void> {
 }
 
 export function startRecommendationsJob(): void {
-  const run = async () => {
-    try {
-      await runRecommendationsJob();
-    } catch (err) {
-      console.error("[RecommendationsJob] failed:", err);
-    }
-  };
-
-  void run();
-  setInterval(run, JOB_INTERVAL_MS);
+  startJob("RecommendationsJob", JOB_INTERVAL_MS, runRecommendationsJob);
 }

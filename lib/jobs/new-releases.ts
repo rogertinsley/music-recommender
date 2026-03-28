@@ -1,6 +1,7 @@
 import { clients } from "@/lib/clients";
 import { NewReleasesService } from "@/lib/new-releases/service";
 import { prisma } from "@/lib/prisma";
+import { startJob } from "@/lib/jobs/runner";
 
 const JOB_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const STALENESS_HOURS = 20;
@@ -63,14 +64,5 @@ async function runNewReleasesJob(): Promise<void> {
 }
 
 export function startNewReleasesJob(): void {
-  const run = async () => {
-    try {
-      await runNewReleasesJob();
-    } catch (err) {
-      console.error("[NewReleasesJob] failed:", err);
-    }
-  };
-
-  void run();
-  setInterval(run, JOB_INTERVAL_MS);
+  startJob("NewReleasesJob", JOB_INTERVAL_MS, runNewReleasesJob);
 }

@@ -416,6 +416,17 @@ export function NowPlayingView() {
   }, [trackId(displayed)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (!displayed) {
+      document.title = "Encore";
+    } else {
+      document.title = `${displayed.artistName} · ${displayed.trackName} | Encore`;
+    }
+    return () => {
+      document.title = "Encore";
+    };
+  }, [displayed]);
+
+  useEffect(() => {
     const es = new EventSource("/api/now-playing/stream");
 
     es.onmessage = (event: MessageEvent<string>) => {

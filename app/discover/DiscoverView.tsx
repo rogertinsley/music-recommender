@@ -117,6 +117,7 @@ function NewReleasesSection({ releases }: { releases: NewRelease[] }) {
 
 function ArtistCard({ rec }: { rec: Recommendation }) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [inLibrary, setInLibrary] = useState(false);
 
   useEffect(() => {
     fetch(`/api/artist-image?name=${encodeURIComponent(rec.artistName)}`)
@@ -124,6 +125,11 @@ function ArtistCard({ rec }: { rec: Recommendation }) {
       .then((images: ArtistImages | null) =>
         setThumbnail(images?.thumbnail ?? null)
       )
+      .catch(() => null);
+
+    fetch(`/api/eversolo/library?artist=${encodeURIComponent(rec.artistName)}`)
+      .then((r) => r.json())
+      .then((data: { inLibrary: boolean }) => setInLibrary(data.inLibrary))
       .catch(() => null);
   }, [rec.artistName]);
 
@@ -144,6 +150,11 @@ function ArtistCard({ rec }: { rec: Recommendation }) {
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-3xl text-zinc-600">♪</span>
           </div>
+        )}
+        {inLibrary && (
+          <span className="absolute bottom-1.5 left-1.5 text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 backdrop-blur-sm">
+            In library
+          </span>
         )}
       </div>
       <div>

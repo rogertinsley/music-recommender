@@ -7,9 +7,18 @@ import { LRCLIBClient } from "@/lib/lrclib/client";
 
 export interface ApiClients {
   lastfm: LastFMClient;
+  /**
+   * General-purpose MusicBrainz client. Used by artist pages, artist-image
+   * lookups, and the new-releases job.
+   */
   musicBrainz: MusicBrainzClient;
-  // Separate instance so now-playing enrichment is never blocked by
-  // artist-page / artist-image lookups filling the shared queue.
+  /**
+   * Dedicated MusicBrainz client for the now-playing poller ONLY.
+   * MusicBrainzClient serialises all requests through a 1 req/s queue.
+   * Without a separate instance, heavy artist-page lookups (up to 12
+   * getReleaseGroupYear calls) would block enrichment for 10+ seconds,
+   * causing the background image on Now Playing to disappear mid-session.
+   */
   musicBrainzEnrichment: MusicBrainzClient;
   fanartTV: FanartTVClient;
   coverArt: CoverArtArchiveClient;

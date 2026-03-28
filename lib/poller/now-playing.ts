@@ -10,8 +10,16 @@ function trackKey(artist: string, title: string): string {
   return `${artist}:::${title}`;
 }
 
-// Exposed so the control API can trigger an immediate poll after a command
+// Pipeline: EverSolo → enrichNowPlaying (Last.FM + MusicBrainz + Fanart + CoverArt)
+//           → Redis (30s TTL) → SSE stream → browser
+//
+// Enrichment is cached in memory by track key so it only runs on track change,
+// not on every 3s poll. scheduledPoll is exposed so the control API can force
+// an immediate poll after a playback command.
 let scheduledPoll: (() => Promise<void>) | null = null;
+let cachedTrackKey: string | null = null;
+let cachedEnrichment: Awaited<ReturnType<typeof enrichNowPlaying>> | null =
+  null;
 
 export function triggerImmediatePoll(): void {
   setTimeout(() => scheduledPoll?.(), 300);
@@ -26,16 +34,12 @@ export function startNowPlayingPoller(): void {
     eversolo,
   } = clients;
 
-  let cachedKey: string | null = null;
-  let cachedEnrichment: Awaited<ReturnType<typeof enrichNowPlaying>> | null =
-    null;
-
   const poll = async () => {
     try {
       const { track, playState } = await eversolo.getState();
 
       if (!track || playState === "idle") {
-        cachedKey = null;
+        cachedTrackKey = null;
         cachedEnrichment = null;
         await redis.del(NOW_PLAYING_KEY);
         return;
@@ -43,7 +47,7 @@ export function startNowPlayingPoller(): void {
 
       const key = trackKey(track.artist, track.title);
 
-      if (key !== cachedKey || !cachedEnrichment) {
+      if (key !== cachedTrackKey || !cachedEnrichment) {
         const nowPlayingTrack = {
           trackName: track.title,
           artistName: track.artist,
@@ -57,7 +61,7 @@ export function startNowPlayingPoller(): void {
           fanartTV,
           coverArt
         );
-        cachedKey = key;
+        cachedTrackKey = key;
       }
 
       const data = {
