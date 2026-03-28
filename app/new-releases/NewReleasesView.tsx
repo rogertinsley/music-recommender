@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface NewRelease {
   id: string;
@@ -126,9 +127,12 @@ export function NewReleasesView() {
                   <p className="text-white text-sm font-medium truncate">
                     {r.title}
                   </p>
-                  <p className="text-zinc-400 text-xs truncate">
+                  <Link
+                    href={`/artist/${encodeURIComponent(r.artistName)}`}
+                    className="text-zinc-400 text-xs truncate hover:text-zinc-200 transition-colors"
+                  >
                     {r.artistName}
-                  </p>
+                  </Link>
                 </div>
 
                 {/* Type badge */}

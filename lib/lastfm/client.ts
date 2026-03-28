@@ -5,6 +5,8 @@ export type {
   SimilarArtist,
   ArtistInfo,
   AlbumInfo,
+  TopTrack,
+  TopAlbum,
   Period,
 } from "./types";
 import type {
@@ -14,6 +16,8 @@ import type {
   SimilarArtist,
   ArtistInfo,
   AlbumInfo,
+  TopTrack,
+  TopAlbum,
   Period,
 } from "./types";
 
@@ -52,17 +56,26 @@ export class LastFMClient {
     };
   }
 
-  async getArtistInfo(artistName: string): Promise<ArtistInfo | null> {
+  async getArtistInfo(
+    artistName: string,
+    username?: string
+  ): Promise<ArtistInfo | null> {
+    const params: Record<string, string> = {
+      method: "artist.getInfo",
+      artist: artistName,
+    };
+    if (username) params.username = username;
+
     const data = await this.fetch<{
       error?: number;
       artist?: {
         name: string;
         mbid: string;
-        stats: { listeners: string };
+        stats: { listeners: string; userplaycount?: string };
         bio: { summary: string };
         tags: { tag: Array<{ name: string }> };
       };
-    }>({ method: "artist.getInfo", artist: artistName });
+    }>(params);
 
     if (data.error || !data.artist) return null;
 
@@ -73,7 +86,54 @@ export class LastFMClient {
       bio: a.bio.summary || null,
       tags: a.tags.tag.map((t) => t.name),
       listeners: parseInt(a.stats.listeners, 10),
+      userPlayCount: a.stats.userplaycount
+        ? parseInt(a.stats.userplaycount, 10)
+        : undefined,
     };
+  }
+
+  async getTopTracks(artistName: string, limit = 10): Promise<TopTrack[]> {
+    const data = await this.fetch<{
+      toptracks: {
+        track: Array<{
+          name: string;
+          playcount: string;
+          "@attr": { rank: string };
+        }>;
+      };
+    }>({
+      method: "artist.getTopTracks",
+      artist: artistName,
+      limit: String(limit),
+    });
+
+    return data.toptracks.track.map((t) => ({
+      name: t.name,
+      playCount: parseInt(t.playcount, 10),
+      rank: parseInt(t["@attr"].rank, 10),
+    }));
+  }
+
+  async getTopAlbums(artistName: string, limit = 6): Promise<TopAlbum[]> {
+    const data = await this.fetch<{
+      topalbums: {
+        album: Array<{
+          name: string;
+          mbid?: string;
+          "@attr": { rank: string };
+        }>;
+      };
+    }>({
+      method: "artist.getTopAlbums",
+      artist: artistName,
+      limit: String(limit),
+    });
+
+    return data.topalbums.album.map((a) => ({
+      name: a.name,
+      mbid: a.mbid || null,
+      rank: parseInt(a["@attr"].rank, 10),
+    }));
   }
 
   async getSimilarArtists(artistName: string): Promise<SimilarArtist[]> {

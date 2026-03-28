@@ -66,7 +66,24 @@ describe("LastFMClient", () => {
         bio: "Radiohead are an English rock band.",
         tags: ["alternative rock", "art rock"],
         listeners: 5000000,
+        userPlayCount: undefined,
       });
+    });
+
+    it("returns userPlayCount when username is provided", async () => {
+      mockFetch({
+        artist: {
+          name: "Radiohead",
+          mbid: "mbid-456",
+          stats: { listeners: "5000000", userplaycount: "342" },
+          bio: { summary: "Radiohead are an English rock band." },
+          tags: { tag: [] },
+        },
+      });
+
+      const info = await client.getArtistInfo("Radiohead", "testuser");
+
+      expect(info?.userPlayCount).toBe(342);
     });
 
     it("returns null bio when bio summary is missing", async () => {
@@ -91,6 +108,74 @@ describe("LastFMClient", () => {
       const info = await client.getArtistInfo("no-such-artist");
 
       expect(info).toBeNull();
+    });
+  });
+
+  describe("getTopTracks", () => {
+    it("returns top tracks with play counts and ranks", async () => {
+      mockFetch({
+        toptracks: {
+          track: [
+            { name: "Creep", playcount: "5000", "@attr": { rank: "1" } },
+            {
+              name: "Karma Police",
+              playcount: "4200",
+              "@attr": { rank: "2" },
+            },
+          ],
+        },
+      });
+
+      const tracks = await client.getTopTracks("Radiohead");
+
+      expect(tracks).toEqual([
+        { name: "Creep", playCount: 5000, rank: 1 },
+        { name: "Karma Police", playCount: 4200, rank: 2 },
+      ]);
+    });
+
+    it("returns empty array when artist has no tracks", async () => {
+      mockFetch({ toptracks: { track: [] } });
+
+      const tracks = await client.getTopTracks("Unknown Artist");
+
+      expect(tracks).toEqual([]);
+    });
+  });
+
+  describe("getTopAlbums", () => {
+    it("returns top albums with mbid and ranks", async () => {
+      mockFetch({
+        topalbums: {
+          album: [
+            {
+              name: "OK Computer",
+              mbid: "mbid-ok",
+              "@attr": { rank: "1" },
+            },
+            {
+              name: "Kid A",
+              mbid: "",
+              "@attr": { rank: "2" },
+            },
+          ],
+        },
+      });
+
+      const albums = await client.getTopAlbums("Radiohead");
+
+      expect(albums).toEqual([
+        { name: "OK Computer", mbid: "mbid-ok", rank: 1 },
+        { name: "Kid A", mbid: null, rank: 2 },
+      ]);
+    });
+
+    it("returns empty array when artist has no albums", async () => {
+      mockFetch({ topalbums: { album: [] } });
+
+      const albums = await client.getTopAlbums("Unknown Artist");
+
+      expect(albums).toEqual([]);
     });
   });
 

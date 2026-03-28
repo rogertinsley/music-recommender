@@ -35,10 +35,23 @@ export interface ArtistInfo {
   bio: string | null;
   tags: string[];
   listeners: number;
+  userPlayCount?: number;
 }
 
 export interface AlbumInfo {
   name: string;
   artist: string;
   mbid: string | null;
+}
+
+export interface TopTrack {
+  name: string;
+  playCount: number;
+  rank: number;
+}
+
+export interface TopAlbum {
+  name: string;
+  mbid: string | null;
+  rank: number;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { ArtistImages } from "@/lib/fanart/client";
 
 interface Recommendation {
@@ -24,7 +25,10 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
   }, [rec.artistName]);
 
   return (
-    <div className="flex flex-col gap-3 bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-600 transition-colors">
+    <Link
+      href={`/artist/${encodeURIComponent(rec.artistName)}`}
+      className="flex flex-col gap-3 bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-600 transition-colors"
+    >
       <div className="relative w-full aspect-square bg-zinc-800">
         {thumbnail ? (
           <Image
@@ -60,6 +64,6 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

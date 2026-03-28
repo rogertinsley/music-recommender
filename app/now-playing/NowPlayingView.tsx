@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { EnrichedNowPlaying } from "@/lib/enrichment/now-playing";
 
 const POLL_INTERVAL_MS = 30_000;
@@ -89,7 +90,12 @@ export function NowPlayingView() {
           <h1 className="text-3xl font-bold text-white leading-tight">
             {data.trackName}
           </h1>
-          <p className="text-xl text-zinc-300">{data.artistName}</p>
+          <Link
+            href={`/artist/${encodeURIComponent(data.artistName)}`}
+            className="text-xl text-zinc-300 hover:text-white transition-colors"
+          >
+            {data.artistName}
+          </Link>
           {data.albumName && (
             <p className="text-sm text-zinc-500 mt-1">{data.albumName}</p>
           )}

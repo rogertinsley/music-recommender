@@ -1,0 +1,79 @@
+import { NextResponse } from "next/server";
+import { redis } from "@/lib/redis";
+import { LastFMClient } from "@/lib/lastfm/client";
+import { MusicBrainzClient } from "@/lib/musicbrainz/client";
+import { FanartTVClient } from "@/lib/fanart/client";
+import { CoverArtArchiveClient } from "@/lib/coverart/client";
+import type { ArtistImages } from "@/lib/fanart/client";
+import type { TopTrack, TopAlbum, SimilarArtist } from "@/lib/lastfm/types";
+
+const CACHE_TTL = 6 * 60 * 60;
+
+export interface ArtistPageData {
+  name: string;
+  mbid: string | null;
+  bio: string | null;
+  tags: string[];
+  listeners: number;
+  userPlayCount: number | null;
+  artistImages: ArtistImages | null;
+  topTracks: TopTrack[];
+  topAlbums: Array<TopAlbum & { coverArtUrl: string | null }>;
+  similarArtists: SimilarArtist[];
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  const { name } = await params;
+  const artistName = decodeURIComponent(name);
+
+  const cacheKey = `artist-page:${artistName.toLowerCase()}`;
+  const cached = await redis.get(cacheKey);
+  if (cached) return NextResponse.json(JSON.parse(cached) as ArtistPageData);
+
+  const lastfm = new LastFMClient(process.env.LASTFM_API_KEY ?? "");
+  const musicBrainz = new MusicBrainzClient();
+  const fanartTV = new FanartTVClient(process.env.FANART_TV_API_KEY ?? "");
+  const coverArt = new CoverArtArchiveClient();
+  const username = process.env.LASTFM_USERNAME ?? "";
+
+  const [artistInfo, topTracks, topAlbums, similarArtists, mbid] =
+    await Promise.all([
+      lastfm.getArtistInfo(artistName, username).catch(() => null),
+      lastfm.getTopTracks(artistName, 10).catch(() => []),
+      lastfm.getTopAlbums(artistName, 6).catch(() => []),
+      lastfm.getSimilarArtists(artistName).catch(() => []),
+      musicBrainz.searchArtist(artistName).catch(() => null),
+    ]);
+
+  const artistImages = mbid
+    ? await fanartTV.getArtistImages(mbid).catch(() => null)
+    : null;
+
+  const topAlbumsWithArt = await Promise.all(
+    topAlbums.map(async (album) => ({
+      ...album,
+      coverArtUrl: album.mbid
+        ? await coverArt.getAlbumArtByReleaseGroup(album.mbid).catch(() => null)
+        : null,
+    }))
+  );
+
+  const data: ArtistPageData = {
+    name: artistInfo?.name ?? artistName,
+    mbid: artistInfo?.mbid ?? mbid,
+    bio: artistInfo?.bio ?? null,
+    tags: artistInfo?.tags ?? [],
+    listeners: artistInfo?.listeners ?? 0,
+    userPlayCount: artistInfo?.userPlayCount ?? null,
+    artistImages,
+    topTracks,
+    topAlbums: topAlbumsWithArt,
+    similarArtists: similarArtists.slice(0, 8),
+  };
+
+  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
+  return NextResponse.json(data);
+}
