@@ -144,18 +144,28 @@ describe("LastFMClient", () => {
   });
 
   describe("getTopAlbums", () => {
-    it("returns top albums with mbid and ranks", async () => {
+    it("returns top albums with mbid, ranks, and image URL", async () => {
       mockFetch({
         topalbums: {
           album: [
             {
               name: "OK Computer",
               mbid: "mbid-ok",
+              image: [
+                { "#text": "small.jpg", size: "small" },
+                { "#text": "large.jpg", size: "extralarge" },
+              ],
               "@attr": { rank: "1" },
             },
             {
               name: "Kid A",
               mbid: "",
+              image: [
+                {
+                  "#text": "2a96cbd8b46e442fc41c2b86b821562f",
+                  size: "extralarge",
+                },
+              ],
               "@attr": { rank: "2" },
             },
           ],
@@ -165,8 +175,13 @@ describe("LastFMClient", () => {
       const albums = await client.getTopAlbums("Radiohead");
 
       expect(albums).toEqual([
-        { name: "OK Computer", mbid: "mbid-ok", rank: 1 },
-        { name: "Kid A", mbid: null, rank: 2 },
+        {
+          name: "OK Computer",
+          mbid: "mbid-ok",
+          rank: 1,
+          imageUrl: "large.jpg",
+        },
+        { name: "Kid A", mbid: null, rank: 2, imageUrl: null },
       ]);
     });
 

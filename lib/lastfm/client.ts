@@ -122,6 +122,7 @@ export class LastFMClient {
         album: Array<{
           name: string;
           mbid?: string;
+          image?: Array<{ "#text": string; size: string }>;
           "@attr": { rank: string };
         }>;
       };
@@ -131,11 +132,23 @@ export class LastFMClient {
       limit: String(limit),
     });
 
-    return data.topalbums.album.map((a) => ({
-      name: a.name,
-      mbid: a.mbid || null,
-      rank: parseInt(a["@attr"].rank, 10),
-    }));
+    const LASTFM_PLACEHOLDER = "2a96cbd8b46e442fc41c2b86b821562f";
+
+    return data.topalbums.album.map((a) => {
+      const img =
+        a.image?.find((i) => i.size === "extralarge") ??
+        a.image?.find((i) => i.size === "large");
+      const imageUrl =
+        img?.["#text"] && !img["#text"].includes(LASTFM_PLACEHOLDER)
+          ? img["#text"]
+          : null;
+      return {
+        name: a.name,
+        mbid: a.mbid || null,
+        rank: parseInt(a["@attr"].rank, 10),
+        imageUrl,
+      };
+    });
   }
 
   async getSimilarArtists(artistName: string): Promise<SimilarArtist[]> {

@@ -54,6 +54,7 @@ export interface TopAlbum {
   name: string;
   mbid: string | null;
   rank: number;
+  imageUrl: string | null;
 }
 
 export interface RecentTrack {

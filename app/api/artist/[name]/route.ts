@@ -47,12 +47,15 @@ export async function GET(
     : null;
 
   const topAlbumsWithArt = await Promise.all(
-    topAlbums.map(async (album) => ({
-      ...album,
-      coverArtUrl: album.mbid
+    topAlbums.map(async (album) => {
+      const coverArtUrl = album.mbid
         ? await coverArt.getAlbumArtByReleaseGroup(album.mbid).catch(() => null)
-        : null,
-    }))
+        : null;
+      return {
+        ...album,
+        coverArtUrl: coverArtUrl ?? album.imageUrl,
+      };
+    })
   );
 
   const data: ArtistPageData = {
