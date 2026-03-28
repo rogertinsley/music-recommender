@@ -3,7 +3,9 @@ export async function register() {
     const { startNowPlayingPoller } = await import("@/lib/poller/now-playing");
     const { startRecommendationsJob } =
       await import("@/lib/jobs/recommendations");
+    const { startNewReleasesJob } = await import("@/lib/jobs/new-releases");
     startNowPlayingPoller();
     startRecommendationsJob();
+    startNewReleasesJob();
   }
 }
