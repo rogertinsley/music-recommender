@@ -14,6 +14,16 @@ services:
       cache:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - default
+      - media-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.encore.rule=Host(`encore.rogertinsley.com`)"
+      - "traefik.http.routers.encore.entrypoints=https"
+      - "traefik.http.routers.encore.tls=true"
+      - "traefik.http.services.encore.loadbalancer.server.port=3567"
+      - "traefik.docker.network=home-server_media-network"
 
   db:
     image: postgres:16-alpine
@@ -49,3 +59,8 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  media-network:
+    external: true
+    name: home-server_media-network
