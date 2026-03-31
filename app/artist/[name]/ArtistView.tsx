@@ -139,7 +139,7 @@ export function ArtistView({ artistName }: { artistName: string }) {
           <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
             Albums
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {data.topAlbums.map((album) => (
               <div key={album.name} className="flex flex-col gap-1.5">
                 <div className="aspect-square rounded-lg overflow-hidden bg-zinc-800">

@@ -7,7 +7,7 @@ import type { EditorialData } from "@/app/api/editorial/route";
 
 function LeadStory({ lead }: { lead: NonNullable<EditorialData["lead"]> }) {
   return (
-    <section className="relative w-full min-h-[70vh] flex items-end overflow-hidden rounded-xl mb-12">
+    <section className="relative w-full min-h-[50vh] md:min-h-[70vh] flex items-end overflow-hidden rounded-xl mb-12">
       {/* Background */}
       {lead.backgroundUrl ? (
         <Image
@@ -185,7 +185,7 @@ function Skeleton() {
         <div className="h-4 bg-zinc-800 rounded w-5/6" />
         <div className="h-4 bg-zinc-800 rounded w-4/6" />
       </div>
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[0, 1, 2].map((i) => (
           <div key={i} className="space-y-3">
             <div className="aspect-square bg-zinc-800 rounded-lg" />

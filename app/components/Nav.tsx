@@ -22,16 +22,16 @@ export function Nav() {
           : "border-b border-zinc-800 px-6 py-4"
       }
     >
-      <nav className="max-w-4xl mx-auto flex items-center gap-8">
-        <span className="text-white font-semibold text-sm tracking-wide">
+      <nav className="max-w-4xl mx-auto flex flex-wrap items-center gap-x-6 gap-y-2">
+        <span className="text-white font-semibold text-sm tracking-wide mr-2">
           Encore
         </span>
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {links.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
-              className={`text-sm transition-colors ${
+              className={`text-sm py-2 transition-colors ${
                 pathname === href
                   ? "text-white font-medium"
                   : isNowPlaying

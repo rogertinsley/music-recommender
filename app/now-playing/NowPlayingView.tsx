@@ -189,7 +189,7 @@ function LyricsPanel({
     return (
       <div
         ref={containerRef}
-        className="absolute top-16 right-0 bottom-20 w-5/12 overflow-y-auto px-8 py-6"
+        className="absolute top-16 right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-8 py-6"
         style={{
           maskImage:
             "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
@@ -205,7 +205,7 @@ function LyricsPanel({
   return (
     <div
       ref={containerRef}
-      className="absolute top-16 right-0 bottom-20 w-5/12 overflow-y-auto px-8 py-6"
+      className="absolute top-16 right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-8 py-6"
       style={{
         maskImage:
           "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
@@ -258,7 +258,7 @@ function QueuePanel({ queue }: { queue: PlayQueue }) {
 
   if (queue.tracks.length === 0) {
     return (
-      <div className="absolute top-16 right-0 bottom-20 w-5/12 flex items-center justify-center">
+      <div className="absolute top-16 right-0 bottom-20 hidden md:flex w-5/12 items-center justify-center">
         <p className="text-zinc-600 text-sm">Queue is empty</p>
       </div>
     );
@@ -266,7 +266,7 @@ function QueuePanel({ queue }: { queue: PlayQueue }) {
 
   return (
     <div
-      className="absolute top-16 right-0 bottom-20 w-5/12 overflow-y-auto px-6 py-4"
+      className="absolute top-16 right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-6 py-4"
       style={{
         maskImage:
           "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
@@ -436,10 +436,11 @@ function NowPlayingCard({
       />
 
       {/* Bottom info block — sits above the progress bar */}
-      <div className="absolute bottom-1 left-0 right-0 px-8 pb-6">
-        <div className="flex items-center gap-5">
+      <div className="absolute bottom-1 left-0 right-0 px-4 md:px-8 pb-6">
+        {/* Row 1: album art + track info + controls */}
+        <div className="flex items-center gap-3 md:gap-5">
           {/* Album art thumbnail */}
-          <div className="w-24 h-24 rounded-md overflow-hidden shrink-0 bg-zinc-800 shadow-xl">
+          <div className="w-16 h-16 md:w-24 md:h-24 rounded-md overflow-hidden shrink-0 bg-zinc-800 shadow-xl">
             {data.albumArtUrl ? (
               <Image
                 src={data.albumArtUrl}
@@ -457,7 +458,7 @@ function NowPlayingCard({
 
           {/* Track info */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-white truncate leading-tight">
+            <h1 className="text-base md:text-xl font-bold text-white truncate leading-tight">
               {data.trackName}
             </h1>
             <Link
@@ -475,22 +476,22 @@ function NowPlayingCard({
 
           {/* Playback controls */}
           <PlayerControls playState={data.playState} />
+        </div>
 
-          {/* Audio quality + eq + time — fixed width to prevent layout shift */}
-          <div className="flex items-center gap-3 shrink-0 justify-end">
-            <AudioQualityBadge format={data.audioFormat} />
-            <div className="flex items-center gap-2 w-28 shrink-0">
-              <EqualizerBars playing={playing} />
-              <span className="text-xs text-emerald-400 font-medium whitespace-nowrap">
-                {playing ? "Now Playing" : "Paused"}
-              </span>
-            </div>
-            {data.durationMs > 0 && (
-              <p className="text-xs text-zinc-500 tabular-nums whitespace-nowrap">
-                {formatTime(displayMs)} / {formatTime(data.durationMs)}
-              </p>
-            )}
+        {/* Row 2: eq + status + time + quality (hidden on very small screens or collapsed) */}
+        <div className="flex items-center gap-3 mt-2 pl-0">
+          <div className="flex items-center gap-2">
+            <EqualizerBars playing={playing} />
+            <span className="text-xs text-emerald-400 font-medium whitespace-nowrap">
+              {playing ? "Now Playing" : "Paused"}
+            </span>
           </div>
+          {data.durationMs > 0 && (
+            <p className="text-xs text-zinc-500 tabular-nums whitespace-nowrap">
+              {formatTime(displayMs)} / {formatTime(data.durationMs)}
+            </p>
+          )}
+          <AudioQualityBadge format={data.audioFormat} />
         </div>
       </div>
 
