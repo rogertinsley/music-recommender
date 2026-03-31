@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="#09090b"/>
+  <!-- Outer record ring -->
+  <circle cx="90" cy="90" r="75" fill="#27272a"/>
+  <!-- Record grooves -->
+  <circle cx="90" cy="90" r="63" fill="none" stroke="#3f3f46" stroke-width="2.5"/>
+  <circle cx="90" cy="90" r="51" fill="none" stroke="#3f3f46" stroke-width="2.5"/>
+  <circle cx="90" cy="90" r="39" fill="none" stroke="#3f3f46" stroke-width="2.5"/>
+  <!-- Label area -->
+  <circle cx="90" cy="90" r="28" fill="#18181b"/>
+  <!-- Center hole -->
+  <circle cx="90" cy="90" r="8" fill="#09090b"/>
+  <!-- Highlight arc -->
+  <path d="M 30 55 A 65 65 0 0 1 150 55" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+</svg>
