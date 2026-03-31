@@ -34,7 +34,7 @@ COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 USER nextjs
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3567
+ENV PORT=3567
 ENV HOSTNAME="0.0.0.0"
 CMD ["./entrypoint.sh"]
