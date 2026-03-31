@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { EditorialData } from "@/app/api/editorial/route";
+import type { NewsItem } from "@/lib/news/service";
 
 function LeadStory({ lead }: { lead: NonNullable<EditorialData["lead"]> }) {
   return (
@@ -175,6 +176,59 @@ function ArtistSpotlight({
   );
 }
 
+function InThePress({ items }: { items: NewsItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="mb-10">
+      <h2 className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-6 font-medium">
+        In the Press
+      </h2>
+      <div className="flex flex-col divide-y divide-zinc-800/60">
+        {items.map((item, i) => (
+          <article key={i} className="py-4 flex flex-col gap-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-zinc-600 uppercase tracking-wider">
+                {item.source}
+              </span>
+              <span className="text-zinc-700 text-xs">·</span>
+              <Link
+                href={`/artist/${encodeURIComponent(item.matchedArtist)}`}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                {item.matchedArtist}
+              </Link>
+              {item.publishedAt && (
+                <>
+                  <span className="text-zinc-700 text-xs">·</span>
+                  <span className="text-xs text-zinc-600 tabular-nums">
+                    {new Date(item.publishedAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </>
+              )}
+            </div>
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white text-sm font-medium hover:text-zinc-300 transition-colors leading-snug"
+            >
+              {item.title}
+            </a>
+            {item.summary && (
+              <p className="text-zinc-500 text-xs leading-relaxed line-clamp-2">
+                {item.summary}
+              </p>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-8">
@@ -231,7 +285,8 @@ export function EditorialView() {
     data.lead ||
     data.weeklyDigest ||
     data.albumReviews.length > 0 ||
-    data.artistSpotlight;
+    data.artistSpotlight ||
+    data.news.length > 0;
 
   if (!hasContent) {
     return (
@@ -253,6 +308,7 @@ export function EditorialView() {
       {data.artistSpotlight && (
         <ArtistSpotlight spotlight={data.artistSpotlight} />
       )}
+      {data.news.length > 0 && <InThePress items={data.news} />}
     </div>
   );
 }

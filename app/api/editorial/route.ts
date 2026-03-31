@@ -7,11 +7,14 @@ import {
   generateAlbumReview,
   generateArtistSpotlight,
 } from "@/lib/ai/editorial";
+import { fetchAllFeeds, filterNewsByArtists } from "@/lib/news/service";
+import type { NewsItem } from "@/lib/news/service";
 import { LASTFM_PLACEHOLDER } from "@/lib/lastfm/constants";
 import { NOW_PLAYING_KEY } from "@/lib/poller/now-playing";
 import type { EnrichedNowPlaying } from "@/lib/enrichment/now-playing";
 
 const CACHE_TTL = 60 * 60; // 1 hour
+const NEWS_CACHE_KEY = "news:raw";
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -39,6 +42,7 @@ export interface EditorialData {
     content: string;
     imageUrl: string | null;
   } | null;
+  news: NewsItem[];
 }
 
 export async function GET() {
@@ -71,6 +75,11 @@ export async function GET() {
   ].slice(0, 12);
   const topArtist = topArtists[0]?.name ?? recentArtistNames[0] ?? null;
 
+  // Artist names for news matching — top artists + recent
+  const allArtistNames = [
+    ...new Set([...topArtists.map((a) => a.name), ...recentArtistNames]),
+  ].slice(0, 30);
+
   // Top 3 most-scrobbled albums this week (best effort from recent tracks)
   const albumCounts = new Map<
     string,
@@ -101,6 +110,22 @@ export async function GET() {
   // Spotlight artist — pick one from recent that isn't the lead
   const spotlightArtist =
     recentArtistNames.find((a) => a !== leadArtist) ?? null;
+
+  // Raw news feed items — cached separately so they survive editorial cache busts
+  let rawNewsItems = await redis
+    .get(NEWS_CACHE_KEY)
+    .then((r) => (r ? JSON.parse(r) : null));
+  if (!rawNewsItems) {
+    rawNewsItems = await fetchAllFeeds().catch(() => []);
+    if (rawNewsItems.length > 0) {
+      await redis.setex(
+        NEWS_CACHE_KEY,
+        CACHE_TTL,
+        JSON.stringify(rawNewsItems)
+      );
+    }
+  }
+  const news = filterNewsByArtists(rawNewsItems ?? [], allArtistNames);
 
   // Generate all AI content in parallel
   const [leadReview, weeklyDigest, albumReviewResults, spotlightContent] =
@@ -171,6 +196,7 @@ export async function GET() {
             imageUrl: spotlightImageUrl,
           }
         : null,
+    news,
   };
 
   await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
