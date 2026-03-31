@@ -1,76 +1,67 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createNowPlayingPipeline, NOW_PLAYING_KEY } from "./now-playing";
 
-vi.mock("@/lib/clients", () => ({
-  clients: {
-    eversolo: { getState: vi.fn() },
-    lastfm: { getArtistInfo: vi.fn() },
-    musicBrainz: { searchArtist: vi.fn(), searchRelease: vi.fn() },
-    musicBrainzEnrichment: { searchArtist: vi.fn(), searchRelease: vi.fn() },
-    fanartTV: { getArtistImages: vi.fn() },
-    coverArt: { getAlbumArt: vi.fn(), getAlbumArtByReleaseGroup: vi.fn() },
+// No vi.mock() needed — deps are injected directly into the factory.
+
+const makeClients = () => ({
+  eversolo: { getState: vi.fn() },
+  lastfm: { getArtistInfo: vi.fn() },
+  musicBrainz: { searchArtist: vi.fn(), searchRelease: vi.fn() },
+  fanartTV: { getArtistImages: vi.fn() },
+  coverArt: { getAlbumArt: vi.fn(), getAlbumArtByReleaseGroup: vi.fn() },
+});
+
+const makeRedis = () => ({ setex: vi.fn(), del: vi.fn() });
+
+const playingState = () => ({
+  track: {
+    title: "Creep",
+    artist: "Radiohead",
+    album: "Pablo Honey",
+    durationMs: 238000,
+    positionMs: 42000,
+    albumArtUrl: null,
+    audioFormat: null,
   },
-}));
-
-vi.mock("@/lib/redis", () => ({
-  redis: { setex: vi.fn(), del: vi.fn() },
-}));
-
-import { clients } from "@/lib/clients";
-import { redis } from "@/lib/redis";
-import { startNowPlayingPoller, NOW_PLAYING_KEY } from "./now-playing";
-
-const eversolo = clients.eversolo as Record<string, ReturnType<typeof vi.fn>>;
-const lastfm = clients.lastfm as Record<string, ReturnType<typeof vi.fn>>;
-const musicBrainz = clients.musicBrainzEnrichment as Record<
-  string,
-  ReturnType<typeof vi.fn>
->;
-const fanartTV = clients.fanartTV as Record<string, ReturnType<typeof vi.fn>>;
-const coverArt = clients.coverArt as Record<string, ReturnType<typeof vi.fn>>;
-const redisMock = redis as Record<string, ReturnType<typeof vi.fn>>;
+  playState: "playing" as const,
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.LASTFM_USERNAME = "testuser";
 });
 
-describe("startNowPlayingPoller", () => {
-  it("deletes the Redis key when nothing is playing", async () => {
-    eversolo.getState.mockResolvedValue({ track: null, playState: "idle" });
+describe("NowPlayingPipeline", () => {
+  it("deletes Redis key when nothing is playing", async () => {
+    const c = makeClients();
+    const r = makeRedis();
+    c.eversolo.getState.mockResolvedValue({ track: null, playState: "idle" });
 
-    startNowPlayingPoller();
-    await vi.waitFor(() => expect(redisMock.del).toHaveBeenCalled());
+    createNowPlayingPipeline(c, r).start();
+    await vi.waitFor(() => expect(r.del).toHaveBeenCalled());
 
-    expect(redisMock.del).toHaveBeenCalledWith(NOW_PLAYING_KEY);
-    expect(redisMock.setex).not.toHaveBeenCalled();
+    expect(r.del).toHaveBeenCalledWith(NOW_PLAYING_KEY);
+    expect(r.setex).not.toHaveBeenCalled();
   });
 
-  it("stores enriched track in Redis when a song is playing", async () => {
-    eversolo.getState.mockResolvedValue({
-      track: {
-        title: "Creep",
-        artist: "Radiohead",
-        album: "Pablo Honey",
-        durationMs: 238000,
-        positionMs: 42000,
-      },
-      playState: "playing",
-    });
-    lastfm.getArtistInfo.mockResolvedValue({
+  it("writes enriched track data to Redis when a song is playing", async () => {
+    const c = makeClients();
+    const r = makeRedis();
+    c.eversolo.getState.mockResolvedValue(playingState());
+    c.lastfm.getArtistInfo.mockResolvedValue({
       bio: "Radiohead are a band.",
       tags: [],
       listeners: 0,
     });
-    musicBrainz.searchArtist.mockResolvedValue("mbid-rh");
-    musicBrainz.searchRelease.mockResolvedValue(null);
-    fanartTV.getArtistImages.mockResolvedValue(null);
-    coverArt.getAlbumArt.mockResolvedValue(null);
-    coverArt.getAlbumArtByReleaseGroup.mockResolvedValue(null);
+    c.musicBrainz.searchArtist.mockResolvedValue("mbid-rh");
+    c.musicBrainz.searchRelease.mockResolvedValue(null);
+    c.fanartTV.getArtistImages.mockResolvedValue(null);
+    c.coverArt.getAlbumArt.mockResolvedValue(null);
+    c.coverArt.getAlbumArtByReleaseGroup.mockResolvedValue(null);
 
-    startNowPlayingPoller();
-    await vi.waitFor(() => expect(redisMock.setex).toHaveBeenCalled());
+    createNowPlayingPipeline(c, r).start();
+    await vi.waitFor(() => expect(r.setex).toHaveBeenCalled());
 
-    const [key, ttl, json] = redisMock.setex.mock.calls[0];
+    const [key, ttl, json] = r.setex.mock.calls[0];
     const stored = JSON.parse(json);
     expect(key).toBe(NOW_PLAYING_KEY);
     expect(ttl).toBe(30);
@@ -79,5 +70,59 @@ describe("startNowPlayingPoller", () => {
     expect(stored.positionMs).toBe(42000);
     expect(stored.durationMs).toBe(238000);
     expect(stored.playState).toBe("playing");
+  });
+
+  it("skips enrichment on subsequent polls for the same track", async () => {
+    const c = makeClients();
+    const r = makeRedis();
+    c.eversolo.getState.mockResolvedValue(playingState());
+    c.lastfm.getArtistInfo.mockResolvedValue(null);
+    c.musicBrainz.searchArtist.mockResolvedValue(null);
+    c.musicBrainz.searchRelease.mockResolvedValue(null);
+    c.fanartTV.getArtistImages.mockResolvedValue(null);
+    c.coverArt.getAlbumArt.mockResolvedValue(null);
+    c.coverArt.getAlbumArtByReleaseGroup.mockResolvedValue(null);
+
+    const pipeline = createNowPlayingPipeline(c, r);
+    pipeline.start();
+    await vi.waitFor(() => expect(r.setex).toHaveBeenCalledTimes(1));
+
+    // Force a second poll for the same track
+    pipeline.triggerPoll();
+    await vi.waitFor(() => expect(r.setex).toHaveBeenCalledTimes(2));
+
+    // Enrichment (Last.FM) called only once despite two polls
+    expect(c.lastfm.getArtistInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-enriches when the track changes between polls", async () => {
+    const c = makeClients();
+    const r = makeRedis();
+    c.eversolo.getState
+      .mockResolvedValueOnce(playingState())
+      .mockResolvedValue({
+        track: {
+          ...playingState().track,
+          title: "Karma Police",
+          artist: "Radiohead",
+        },
+        playState: "playing" as const,
+      });
+    c.lastfm.getArtistInfo.mockResolvedValue(null);
+    c.musicBrainz.searchArtist.mockResolvedValue(null);
+    c.musicBrainz.searchRelease.mockResolvedValue(null);
+    c.fanartTV.getArtistImages.mockResolvedValue(null);
+    c.coverArt.getAlbumArt.mockResolvedValue(null);
+    c.coverArt.getAlbumArtByReleaseGroup.mockResolvedValue(null);
+
+    const pipeline = createNowPlayingPipeline(c, r);
+    pipeline.start();
+    await vi.waitFor(() => expect(r.setex).toHaveBeenCalledTimes(1));
+
+    pipeline.triggerPoll();
+    await vi.waitFor(() => expect(r.setex).toHaveBeenCalledTimes(2));
+
+    // Enrichment called twice — once per track
+    expect(c.lastfm.getArtistInfo).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,40 +1,50 @@
-import { clients } from "@/lib/clients";
 import { enrichNowPlaying } from "@/lib/enrichment/now-playing";
-import { redis } from "@/lib/redis";
+import type { LastFMClient } from "@/lib/lastfm/client";
+import type { MusicBrainzClient } from "@/lib/musicbrainz/client";
+import type { FanartTVClient } from "@/lib/fanart/client";
+import type { CoverArtArchiveClient } from "@/lib/coverart/client";
+import type { EversoloClient } from "@/lib/eversolo/client";
 
 export const NOW_PLAYING_KEY = "now-playing";
 const POLL_INTERVAL_MS = 3_000;
 const CACHE_TTL_SECONDS = 30;
 
+type PipelineClients = {
+  eversolo: Pick<EversoloClient, "getState">;
+  lastfm: Pick<LastFMClient, "getArtistInfo">;
+  musicBrainz: Pick<MusicBrainzClient, "searchArtist" | "searchRelease">;
+  fanartTV: Pick<FanartTVClient, "getArtistImages">;
+  coverArt: Pick<
+    CoverArtArchiveClient,
+    "getAlbumArt" | "getAlbumArtByReleaseGroup"
+  >;
+};
+
+type PipelineRedis = {
+  setex(key: string, seconds: number, value: string): Promise<unknown>;
+  del(key: string): Promise<unknown>;
+};
+
+export interface NowPlayingPipeline {
+  start(): void;
+  triggerPoll(): void;
+}
+
 function trackKey(artist: string, title: string): string {
   return `${artist}:::${title}`;
 }
 
-// Pipeline: EverSolo → enrichNowPlaying (Last.FM + MusicBrainz + Fanart + CoverArt)
-//           → Redis (30s TTL) → SSE stream → browser
-//
-// Enrichment is cached in memory by track key so it only runs on track change,
-// not on every 3s poll. scheduledPoll is exposed so the control API can force
-// an immediate poll after a playback command.
-let scheduledPoll: (() => Promise<void>) | null = null;
-let cachedTrackKey: string | null = null;
-let cachedEnrichment: Awaited<ReturnType<typeof enrichNowPlaying>> | null =
-  null;
+export function createNowPlayingPipeline(
+  clients: PipelineClients,
+  redis: PipelineRedis
+): NowPlayingPipeline {
+  const { eversolo, lastfm, musicBrainz, fanartTV, coverArt } = clients;
 
-export function triggerImmediatePoll(): void {
-  setTimeout(() => scheduledPoll?.(), 300);
-}
+  let cachedTrackKey: string | null = null;
+  let cachedEnrichment: Awaited<ReturnType<typeof enrichNowPlaying>> | null =
+    null;
 
-export function startNowPlayingPoller(): void {
-  const {
-    lastfm,
-    musicBrainzEnrichment: musicBrainz,
-    fanartTV,
-    coverArt,
-    eversolo,
-  } = clients;
-
-  const poll = async () => {
+  const poll = async (): Promise<void> => {
     try {
       const { track, playState } = await eversolo.getState();
 
@@ -83,7 +93,13 @@ export function startNowPlayingPoller(): void {
     }
   };
 
-  scheduledPoll = poll;
-  void poll();
-  setInterval(poll, POLL_INTERVAL_MS);
+  return {
+    start() {
+      void poll();
+      setInterval(poll, POLL_INTERVAL_MS);
+    },
+    triggerPoll() {
+      setTimeout(() => void poll(), 300);
+    },
+  };
 }

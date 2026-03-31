@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { clients } from "@/lib/clients";
-import { triggerImmediatePoll } from "@/lib/poller/now-playing";
+import { nowPlayingPipeline } from "@/lib/poller/pipeline";
 
 const CONTROL_ACTIONS = ["playOrPause", "playNext", "playLast"] as const;
 type Action = (typeof CONTROL_ACTIONS)[number];
@@ -13,6 +13,6 @@ export async function POST(request: Request) {
   }
 
   await clients.eversolo.control(action);
-  triggerImmediatePoll();
+  nowPlayingPipeline.triggerPoll();
   return NextResponse.json({ ok: true });
 }
