@@ -138,4 +138,51 @@ describe("getArtistPageData", () => {
     expect(data.topTracks).toEqual([]);
     expect(data.artistImages).toBeNull();
   });
+
+  it("filters out Last.FM placeholder imageUrl when CoverArt returns null", async () => {
+    const placeholderUrl =
+      "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png";
+    mockClients.lastfm.getTopAlbums.mockResolvedValue([
+      {
+        name: "OK Computer",
+        mbid: "album-mbid",
+        rank: 1,
+        imageUrl: placeholderUrl,
+      },
+    ]);
+    mockClients.coverArt.getAlbumArtByReleaseGroup.mockResolvedValue(null);
+    mockClients.musicBrainz.getReleaseGroupYear.mockResolvedValue(null);
+
+    const data = await getArtistPageData("Radiohead", mockClients, "testuser");
+
+    expect(data.topAlbums[0].coverArtUrl).toBeNull();
+  });
+
+  it("returns null coverArtUrl only for albums where CoverArt fails", async () => {
+    mockClients.lastfm.getTopAlbums.mockResolvedValue([
+      { name: "OK Computer", mbid: "mbid-ok", rank: 1, imageUrl: null },
+      { name: "Kid A", mbid: "mbid-kida", rank: 2, imageUrl: null },
+    ]);
+    mockClients.coverArt.getAlbumArtByReleaseGroup
+      .mockResolvedValueOnce("http://example.com/ok.jpg") // OK Computer succeeds
+      .mockRejectedValueOnce(new Error("not found")); // Kid A fails
+    mockClients.musicBrainz.getReleaseGroupYear.mockResolvedValue(null);
+
+    const data = await getArtistPageData("Radiohead", mockClients, "testuser");
+
+    expect(data.topAlbums[0].coverArtUrl).toBe("http://example.com/ok.jpg");
+    expect(data.topAlbums[1].coverArtUrl).toBeNull();
+  });
+
+  it("returns null artistImages when MusicBrainz finds MBID but FanartTV fails", async () => {
+    mockClients.musicBrainz.searchArtist.mockResolvedValue("mbid-rh");
+    mockClients.fanartTV.getArtistImages.mockRejectedValue(
+      new Error("fanart timeout")
+    );
+
+    const data = await getArtistPageData("Radiohead", mockClients, "testuser");
+
+    expect(data.artistImages).toBeNull();
+    expect(data.mbid).toBe("mbid-rh"); // MBID still populated
+  });
 });
