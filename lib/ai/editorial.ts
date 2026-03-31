@@ -2,7 +2,7 @@ import { openai } from "@/lib/ai/client";
 
 async function ask(prompt: string): Promise<string> {
   const msg = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini",
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
