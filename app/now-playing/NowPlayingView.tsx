@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { EnrichedNowPlaying } from "@/lib/enrichment/now-playing";
@@ -8,6 +8,177 @@ import type { Lyrics, LyricLine } from "@/lib/lrclib/client";
 import type { PlayQueue } from "@/lib/eversolo/client";
 
 const CROSSFADE_MS = 800;
+
+// ── Colour extraction ────────────────────────────────────────────────────────
+
+interface AlbumColors {
+  primary: string;
+  secondary: string;
+}
+
+function useAlbumColors(imageUrl: string | null): AlbumColors | null {
+  const [colors, setColors] = useState<AlbumColors | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl) {
+      setColors(null);
+      return;
+    }
+
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 50;
+        canvas.height = 50;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const { data } = ctx.getImageData(0, 0, 50, 50);
+
+        const buckets = new Map<
+          string,
+          { r: number; g: number; b: number; count: number }
+        >();
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          // skip near-black and near-grey pixels — they're uninteresting
+          if (Math.max(r, g, b) < 30) continue;
+          if (Math.max(r, g, b) - Math.min(r, g, b) < 25) continue;
+          const qr = Math.round(r / 32) * 32;
+          const qg = Math.round(g / 32) * 32;
+          const qb = Math.round(b / 32) * 32;
+          const key = `${qr},${qg},${qb}`;
+          const ex = buckets.get(key);
+          if (ex) ex.count++;
+          else buckets.set(key, { r: qr, g: qg, b: qb, count: 1 });
+        }
+
+        const sorted = [...buckets.values()].sort((a, b) => b.count - a.count);
+        if (sorted.length === 0) return;
+        const p = sorted[0];
+        const s = sorted[1] ?? sorted[0];
+        setColors({
+          primary: `rgb(${p.r},${p.g},${p.b})`,
+          secondary: `rgb(${s.r},${s.g},${s.b})`,
+        });
+      } catch {
+        setColors(null);
+      }
+    };
+
+    img.onerror = () => setColors(null);
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  return colors;
+}
+
+// ── Waveform visualiser ──────────────────────────────────────────────────────
+
+const BAR_COUNT = 52;
+
+interface BarConfig {
+  freq1: number;
+  freq2: number;
+  freq3: number;
+  phase: number;
+  amp: number;
+}
+
+function WaveformVisualizer({
+  playing,
+  color,
+}: {
+  playing: boolean;
+  color: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+
+  // Stable per-mount bar config — gives each session its own organic shape
+  const bars = useMemo<BarConfig[]>(
+    () =>
+      Array.from({ length: BAR_COUNT }, (_, i) => ({
+        freq1: 1.2 + Math.random() * 2.2,
+        freq2: 0.7 + Math.random() * 1.8,
+        freq3: 2.0 + Math.random() * 2.5,
+        phase: (i / BAR_COUNT) * Math.PI * 6,
+        amp: 0.45 + Math.random() * 0.55,
+      })),
+    []
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const GAP = 3;
+
+    const draw = (ts: number) => {
+      const W = canvas.offsetWidth;
+      const H = canvas.offsetHeight;
+      if (canvas.width !== W || canvas.height !== H) {
+        canvas.width = W;
+        canvas.height = H;
+      }
+      ctx.clearRect(0, 0, W, H);
+
+      const t = ts / 1000;
+      const barW = (W - GAP * (BAR_COUNT - 1)) / BAR_COUNT;
+
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const b = bars[i];
+        let h: number;
+        if (playing) {
+          const wave =
+            Math.sin(t * b.freq1 + b.phase) * 0.38 +
+            Math.sin(t * b.freq2 + b.phase * 1.4) * 0.34 +
+            Math.sin(t * b.freq3 + b.phase * 0.6) * 0.28;
+          h = (wave * b.amp * 0.5 + 0.5) * (H - 6) + 6;
+        } else {
+          h = 3;
+        }
+
+        const x = i * (barW + GAP);
+        const radius = Math.min(2, barW / 2);
+
+        ctx.fillStyle = color;
+        ctx.globalAlpha = playing ? 0.55 : 0.2;
+        ctx.beginPath();
+        ctx.roundRect(x, H - h, barW, h, radius);
+        ctx.fill();
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    rafRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [playing, color, bars]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute left-0 right-0 bottom-36 md:bottom-44 pointer-events-none"
+      style={{
+        height: 90,
+        width: "100%",
+        maskImage:
+          "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)",
+        WebkitMaskImage:
+          "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)",
+      }}
+    />
+  );
+}
 
 function trackId(data: EnrichedNowPlaying | null): string {
   if (!data) return "__empty__";
@@ -370,6 +541,8 @@ function NowPlayingCard({
 }) {
   const [displayMs, setDisplayMs] = useState(data?.positionMs ?? 0);
   const receivedAtRef = useRef(Date.now());
+  const albumColors = useAlbumColors(data?.albumArtUrl ?? null);
+  const waveColor = albumColors?.primary ?? "#34d399";
 
   useEffect(() => {
     receivedAtRef.current = Date.now();
@@ -422,6 +595,16 @@ function NowPlayingCard({
                 "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.6) 65%, rgba(0,0,0,0.92) 100%)",
             }}
           />
+          {/* Subtle colour tint derived from album art */}
+          {albumColors && (
+            <div
+              className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+              style={{
+                background: `radial-gradient(ellipse at 30% 20%, ${albumColors.primary}30 0%, transparent 55%),
+                             radial-gradient(ellipse at 75% 60%, ${albumColors.secondary}25 0%, transparent 50%)`,
+              }}
+            />
+          )}
         </>
       ) : (
         <div className="absolute inset-0 bg-zinc-950" />
@@ -434,6 +617,9 @@ function NowPlayingCard({
         positionMs={displayMs}
         playing={playing}
       />
+
+      {/* Waveform visualiser */}
+      <WaveformVisualizer playing={playing} color={waveColor} />
 
       {/* Bottom info block — sits above the progress bar */}
       <div className="absolute bottom-1 left-0 right-0 px-4 md:px-8 pb-6">
@@ -498,8 +684,12 @@ function NowPlayingCard({
       {/* Full-width progress bar pinned to bottom edge */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
         <div
-          className="absolute inset-y-0 left-0 bg-emerald-400"
-          style={{ width: `${pct}%`, transition: "width 1s linear" }}
+          className="absolute inset-y-0 left-0"
+          style={{
+            width: `${pct}%`,
+            transition: "width 1s linear",
+            backgroundColor: waveColor,
+          }}
         />
       </div>
     </div>
