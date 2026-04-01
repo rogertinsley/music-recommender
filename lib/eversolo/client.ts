@@ -140,9 +140,8 @@ export class EversoloClient {
         album: ai.albumName ?? "",
         durationMs: data.duration ?? 0,
         positionMs: data.position ?? 0,
-        // Prefer playingMusic art (higher res from streaming CDN) over everSoloPlayAudioInfo
-        albumArtUrl:
-          pm?.albumArtBig ?? pm?.albumArt ?? ai.albumUrl ?? ai.albumArt ?? null,
+        // Use everSoloPlayAudioInfo art — playingMusic art belongs to a different track
+        albumArtUrl: ai.albumUrl ?? ai.albumArt ?? null,
         audioFormat:
           pm?.extension || pm?.sampleRate
             ? {

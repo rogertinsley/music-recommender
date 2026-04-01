@@ -114,9 +114,9 @@ describe("EversoloClient", () => {
       expect(track?.title).toBe("Nightjar");
       expect(track?.artist).toBe("David Gray");
       expect(track?.album).toBe("Nightjar");
-      // But prefer playingMusic art (CDN URL already present)
+      // Use everSoloPlayAudioInfo art — playingMusic art belongs to a different track
       expect(track?.albumArtUrl).toBe(
-        "https://static.qobuz.com/images/covers/90/59/art_600.jpg"
+        "https://static.qobuz.com/images/covers/cx/37/nightjar_600.jpg"
       );
       // And keep audio format from playingMusic
       expect(track?.audioFormat).toMatchObject({
