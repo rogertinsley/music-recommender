@@ -81,6 +81,7 @@ export function createNowPlayingPipeline(
         durationMs: track.durationMs,
         playState,
         audioFormat: track.audioFormat,
+        source: track.source,
       };
 
       await redis.setex(

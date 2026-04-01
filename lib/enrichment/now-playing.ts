@@ -14,6 +14,8 @@ export interface EnrichedNowPlaying extends NowPlayingTrack {
   durationMs: number;
   playState: PlayState;
   audioFormat: AudioFormat | null;
+  /** Streaming source identifier (e.g. "qobuz"), null for local library playback. */
+  source: string | null;
 }
 
 function stripBio(raw: string): string {

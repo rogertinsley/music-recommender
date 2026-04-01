@@ -175,19 +175,27 @@ function PlayerControls({
 
 function AudioQualityBadge({
   format,
+  source,
 }: {
   format: EnrichedNowPlaying["audioFormat"];
+  source: EnrichedNowPlaying["source"];
 }) {
-  if (!format?.extension) return null;
-  const parts = [
-    format.extension.toUpperCase(),
-    format.bits && format.bits !== "0" ? `${format.bits}-bit` : null,
-    format.sampleRate || null,
-  ].filter(Boolean);
-  if (parts.length === 0) return null;
+  const qualityParts = format
+    ? [
+        format.extension?.toUpperCase() || null,
+        format.bits && format.bits !== "0" ? `${format.bits}-bit` : null,
+        format.sampleRate || null,
+      ].filter(Boolean)
+    : [];
+
+  if (!source && qualityParts.length === 0) return null;
+
   return (
-    <p className="text-xs text-zinc-500 tabular-nums shrink-0">
-      {parts.join(" · ")}
+    <p className="text-xs text-zinc-500 tabular-nums shrink-0 flex items-center gap-1.5">
+      {source === "qobuz" && (
+        <span className="text-white/60 font-medium tracking-wide">Qobuz</span>
+      )}
+      {qualityParts.length > 0 && <span>{qualityParts.join(" · ")}</span>}
     </p>
   );
 }
@@ -573,7 +581,7 @@ function NowPlayingCard({
               {formatTime(displayMs)} / {formatTime(data.durationMs)}
             </p>
           )}
-          <AudioQualityBadge format={data.audioFormat} />
+          <AudioQualityBadge format={data.audioFormat} source={data.source} />
         </div>
       </div>
 

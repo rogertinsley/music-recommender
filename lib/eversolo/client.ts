@@ -15,6 +15,8 @@ export interface EversoloTrack {
   positionMs: number;
   albumArtUrl: string | null;
   audioFormat: AudioFormat | null;
+  /** Streaming source identifier when playing via an online service (e.g. "qobuz"), null for local library. */
+  source: string | null;
 }
 
 export interface EversoloState {
@@ -127,6 +129,7 @@ export class EversoloClient {
                 channels: pm.channels ?? 2,
               }
             : null,
+        source: null,
       };
     }
 
@@ -149,6 +152,7 @@ export class EversoloClient {
                 channels: pm?.channels ?? 2,
               }
             : null,
+        source: pm?.streamId ?? null,
       };
     }
 
