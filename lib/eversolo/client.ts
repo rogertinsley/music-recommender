@@ -50,6 +50,8 @@ interface ZidooPlayingMusic {
   channels?: number;
   albumArtBig?: string;
   albumArt?: string;
+  /** Present when playing from a streaming source (e.g. "qobuz"). */
+  streamId?: string;
 }
 
 interface ZidooAudioInfo {
@@ -57,6 +59,7 @@ interface ZidooAudioInfo {
   artistName?: string;
   albumName?: string;
   albumArt?: string;
+  albumUrl?: string;
 }
 
 interface ZidooStateResponse {
@@ -100,7 +103,14 @@ export class EversoloClient {
     let track: EversoloTrack | null = null;
 
     const pm = data.playingMusic;
-    if (pm?.title) {
+    const ai = data.everSoloPlayInfo?.everSoloPlayAudioInfo;
+
+    // When a streamId is set (e.g. "qobuz"), playingMusic may hold a different
+    // track than what's actually decoding. Prefer everSoloPlayAudioInfo for
+    // metadata in that case, but keep audio format from playingMusic.
+    const isStreaming = !!pm?.streamId;
+
+    if (pm?.title && !isStreaming) {
       track = {
         title: pm.title,
         artist: pm.artist ?? "",
@@ -120,19 +130,26 @@ export class EversoloClient {
       };
     }
 
-    if (!track) {
-      const ai = data.everSoloPlayInfo?.everSoloPlayAudioInfo;
-      if (ai?.songName) {
-        track = {
-          title: ai.songName,
-          artist: ai.artistName ?? "",
-          album: ai.albumName ?? "",
-          durationMs: data.duration ?? 0,
-          positionMs: data.position ?? 0,
-          albumArtUrl: ai.albumArt ?? null,
-          audioFormat: null,
-        };
-      }
+    if (!track && ai?.songName) {
+      track = {
+        title: ai.songName,
+        artist: ai.artistName ?? "",
+        album: ai.albumName ?? "",
+        durationMs: data.duration ?? 0,
+        positionMs: data.position ?? 0,
+        // Prefer playingMusic art (higher res from streaming CDN) over everSoloPlayAudioInfo
+        albumArtUrl:
+          pm?.albumArtBig ?? pm?.albumArt ?? ai.albumUrl ?? ai.albumArt ?? null,
+        audioFormat:
+          pm?.extension || pm?.sampleRate
+            ? {
+                extension: pm?.extension ?? "",
+                sampleRate: pm?.sampleRate ?? "",
+                bits: pm?.bits ?? "",
+                channels: pm?.channels ?? 2,
+              }
+            : null,
+      };
     }
 
     return { track, playState };

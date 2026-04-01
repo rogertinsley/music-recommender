@@ -80,6 +80,53 @@ describe("EversoloClient", () => {
       });
     });
 
+    it("uses everSoloPlayAudioInfo when playingMusic has a streamId (Qobuz Connect)", async () => {
+      mockFetch({
+        state: 3,
+        duration: 331377,
+        position: 322419,
+        playingMusic: {
+          title: "Why so Serious? (Album Version)",
+          artist: "Hans Zimmer",
+          album: "The Dark Knight",
+          albumArtBig:
+            "https://static.qobuz.com/images/covers/90/59/art_600.jpg",
+          extension: "FLAC",
+          sampleRate: "44.1 kHz",
+          bits: "16",
+          channels: 2,
+          streamId: "qobuz",
+        },
+        everSoloPlayInfo: {
+          everSoloPlayAudioInfo: {
+            songName: "Nightjar",
+            artistName: "David Gray",
+            albumName: "Nightjar",
+            albumUrl:
+              "https://static.qobuz.com/images/covers/cx/37/nightjar_600.jpg",
+          },
+        },
+      });
+
+      const { track } = await client.getState();
+
+      // Must use everSoloPlayAudioInfo for metadata (authoritative for streaming)
+      expect(track?.title).toBe("Nightjar");
+      expect(track?.artist).toBe("David Gray");
+      expect(track?.album).toBe("Nightjar");
+      // But prefer playingMusic art (CDN URL already present)
+      expect(track?.albumArtUrl).toBe(
+        "https://static.qobuz.com/images/covers/90/59/art_600.jpg"
+      );
+      // And keep audio format from playingMusic
+      expect(track?.audioFormat).toMatchObject({
+        extension: "FLAC",
+        sampleRate: "44.1 kHz",
+        bits: "16",
+        channels: 2,
+      });
+    });
+
     it("returns null track when neither path has data", async () => {
       mockFetch({ state: 0 });
 
@@ -139,12 +186,10 @@ describe("EversoloClient", () => {
 
   describe("control", () => {
     it("posts to the correct endpoint", async () => {
-      const spy = vi
-        .spyOn(global, "fetch")
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({}),
-        } as Response);
+      const spy = vi.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
 
       await client.control("playOrPause");
 
