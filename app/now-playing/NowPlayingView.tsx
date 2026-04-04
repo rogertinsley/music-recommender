@@ -269,7 +269,7 @@ function LyricsPanel({
     return (
       <div
         ref={containerRef}
-        className="absolute top-16 right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-8 py-6"
+        className="absolute top-[88px] right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-8 py-6"
         style={{
           maskImage:
             "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
@@ -285,7 +285,7 @@ function LyricsPanel({
   return (
     <div
       ref={containerRef}
-      className="absolute top-16 right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-8 py-6"
+      className="absolute top-[88px] right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-8 py-6"
       style={{
         maskImage:
           "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
@@ -338,7 +338,7 @@ function QueuePanel({ queue }: { queue: PlayQueue }) {
 
   if (queue.tracks.length === 0) {
     return (
-      <div className="absolute top-16 right-0 bottom-20 hidden md:flex w-5/12 items-center justify-center">
+      <div className="absolute top-[88px] right-0 bottom-20 hidden md:flex w-5/12 items-center justify-center">
         <p className="text-white/25 text-sm tracking-wide">Queue is empty</p>
       </div>
     );
@@ -346,7 +346,7 @@ function QueuePanel({ queue }: { queue: PlayQueue }) {
 
   return (
     <div
-      className="absolute top-16 right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-6 py-4"
+      className="absolute top-[88px] right-0 bottom-20 hidden md:block w-5/12 overflow-y-auto px-6 py-4"
       style={{
         maskImage:
           "linear-gradient(to bottom, transparent 0%, black 8%, black 85%, transparent 100%)",
@@ -410,7 +410,7 @@ function RightPanel({
     <>
       {/* Tab toggle — only shown when both are available */}
       {hasLyrics && hasQueue && (
-        <div className="absolute top-4 right-6 flex gap-1 z-10">
+        <div className="absolute top-[72px] right-6 flex gap-1 z-10">
           {(["queue", "lyrics"] as RightPanelTab[]).map((t) => (
             <button
               key={t}
