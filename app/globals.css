@@ -38,6 +38,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Entry animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Warm scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
