@@ -116,7 +116,7 @@ function LeadStory({ lead }: { lead: NonNullable<EditorialData["lead"]> }) {
 
         {lead.albumName && (
           <p
-            className="font-display italic text-white/50 mb-6 leading-tight"
+            className="font-sans text-white/65 mb-6 leading-tight"
             style={{ fontSize: "clamp(1rem, 2.5vw, 1.5rem)", ...reveal(140) }}
           >
             {lead.albumName}
@@ -126,7 +126,7 @@ function LeadStory({ lead }: { lead: NonNullable<EditorialData["lead"]> }) {
         {/* Pullquote — centrepiece, no border */}
         {lead.pullQuote && (
           <p
-            className="font-display italic text-white/80 leading-snug mb-6 max-w-2xl"
+            className="font-display italic text-white/90 leading-snug mb-6 max-w-2xl"
             style={{ fontSize: "clamp(1.2rem, 2.8vw, 2rem)", ...reveal(200) }}
           >
             &ldquo;{lead.pullQuote}&rdquo;
@@ -135,7 +135,7 @@ function LeadStory({ lead }: { lead: NonNullable<EditorialData["lead"]> }) {
 
         {/* Review — subtle glass panel */}
         <div className="max-w-xl" style={reveal(280)}>
-          <div className="text-sm text-white/55 leading-relaxed space-y-2 bg-black/20 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/5">
+          <div className="text-sm text-white/75 leading-relaxed space-y-2 bg-black/20 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/5">
             {lead.review
               .split("\n\n")
               .slice(0, 2)
@@ -162,8 +162,11 @@ function WeeklyDigest({ content }: { content: string }) {
         ✦ &nbsp; This Week in Your Listening &nbsp; ✦
       </p>
       <p
-        className="font-display italic text-warm-200 leading-relaxed mx-auto font-light"
-        style={{ fontSize: "clamp(1.1rem, 2.2vw, 1.5rem)", maxWidth: "42rem" }}
+        className="font-sans text-warm-200 leading-relaxed mx-auto"
+        style={{
+          fontSize: "clamp(1.05rem, 2.2vw, 1.35rem)",
+          maxWidth: "42rem",
+        }}
       >
         {content}
       </p>
@@ -232,18 +235,18 @@ function AlbumReviews({ reviews }: { reviews: EditorialData["albumReviews"] }) {
               >
                 {featured.artistName}
               </Link>
-              <h3 className="font-display text-2xl md:text-3xl font-light text-warm-100 leading-tight">
+              <h3 className="font-sans text-2xl md:text-3xl font-semibold text-warm-100 leading-tight">
                 {featured.albumName}
               </h3>
             </div>
 
             {featured.pullQuote && (
-              <p className="font-display italic text-lg md:text-xl text-warm-300 leading-snug">
+              <p className="font-sans italic text-lg md:text-xl text-warm-300 leading-snug">
                 &ldquo;{featured.pullQuote}&rdquo;
               </p>
             )}
 
-            <p className="text-sm text-warm-500 leading-relaxed line-clamp-4">
+            <p className="text-sm text-warm-400 leading-relaxed line-clamp-4">
               {featured.review}
             </p>
           </div>
@@ -292,11 +295,11 @@ function AlbumReviews({ reviews }: { reviews: EditorialData["albumReviews"] }) {
                 >
                   {r.artistName}
                 </Link>
-                <h3 className="font-display text-lg font-light text-warm-100 leading-tight">
+                <h3 className="font-sans text-base font-semibold text-warm-100 leading-tight">
                   {r.albumName}
                 </h3>
                 {r.pullQuote && (
-                  <p className="font-display italic text-sm text-warm-400 leading-snug line-clamp-2">
+                  <p className="font-sans italic text-sm text-warm-300 leading-snug line-clamp-2">
                     &ldquo;{r.pullQuote}&rdquo;
                   </p>
                 )}
@@ -348,7 +351,7 @@ function ArtistSpotlight({
           </p>
           <Link
             href={`/artist/${encodeURIComponent(spotlight.artistName)}`}
-            className="font-display text-xl font-light text-warm-100 hover:text-white transition-colors block mb-3"
+            className="font-sans text-xl font-semibold text-warm-100 hover:text-white transition-colors block mb-3"
           >
             {spotlight.artistName}
           </Link>
@@ -441,7 +444,7 @@ function PressCard({
           className="block"
         >
           <h3
-            className={`font-display font-semibold leading-tight text-warm-100 group-hover:text-amber-accent transition-colors ${featured ? "text-2xl md:text-3xl" : "text-base"}`}
+            className={`font-sans font-semibold leading-tight text-warm-100 group-hover:text-amber-accent transition-colors ${featured ? "text-2xl md:text-3xl" : "text-base"}`}
           >
             {item.title}
           </h3>
@@ -449,7 +452,7 @@ function PressCard({
 
         {item.summary && (
           <p
-            className={`text-warm-500 leading-relaxed ${featured ? "text-sm line-clamp-3" : "text-xs line-clamp-2"}`}
+            className={`text-warm-400 leading-relaxed ${featured ? "text-sm line-clamp-3" : "text-xs line-clamp-2"}`}
           >
             {item.summary}
           </p>
