@@ -89,7 +89,7 @@ export function NewReleasesView() {
   const groups = groupByDate(data.releases);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="max-w-4xl mx-auto flex flex-col gap-8">
       <div className="flex items-baseline justify-between">
         <h1 className="font-display italic text-2xl font-light text-warm-100">
           New Releases

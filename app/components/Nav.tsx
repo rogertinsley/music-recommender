@@ -23,7 +23,7 @@ export function Nav() {
           : "border-b border-warm-700 px-6 py-4"
       }
     >
-      <nav className="max-w-4xl mx-auto flex flex-wrap items-center gap-x-7 gap-y-2">
+      <nav className="flex flex-wrap items-center gap-x-7 gap-y-2">
         <Link
           href="/"
           className={`font-display text-[1.35rem] font-light tracking-[0.08em] mr-2 shrink-0 transition-opacity hover:opacity-80 ${

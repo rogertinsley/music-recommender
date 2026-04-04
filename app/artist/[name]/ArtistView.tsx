@@ -43,7 +43,7 @@ export function ArtistView({ artistName }: { artistName: string }) {
   const bio = data.bio ? stripBio(data.bio) : null;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="max-w-4xl mx-auto flex flex-col gap-8">
       {/* Hero */}
       <div className="relative -mx-6 -mt-8 h-72 overflow-hidden rounded-b-lg">
         {data.artistImages?.background ? (

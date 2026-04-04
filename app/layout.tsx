@@ -48,7 +48,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen">
         <Nav />
-        <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
+        <main className="px-6 py-8">{children}</main>
       </body>
     </html>
   );

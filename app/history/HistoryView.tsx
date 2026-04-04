@@ -51,7 +51,7 @@ export function HistoryView() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <div className="flex flex-col divide-y divide-warm-800/60">
         {tracks.map((track, i) => (
           <div key={i} className="flex items-center gap-4 py-3">
