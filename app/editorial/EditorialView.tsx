@@ -363,72 +363,168 @@ function ArtistSpotlight({
 
 // ── In the Press ──────────────────────────────────────────────────────────────
 
+const SOURCE_COLORS: Record<string, string> = {
+  Pitchfork: "#d4292a",
+  Stereogum: "#4a6cf7",
+  "The Guardian": "#052962",
+  NME: "#e4002b",
+  "FACT Magazine": "#ff5500",
+  Consequence: "#1a1a2e",
+  "Brooklyn Vegan": "#2d7a4f",
+  DIY: "#f5a623",
+  "Line of Best Fit": "#9b59b6",
+  "Resident Advisor": "#000000",
+};
+
+function PressCard({
+  item,
+  featured,
+  delay,
+}: {
+  item: NewsItem;
+  featured: boolean;
+  delay: number;
+}) {
+  const accentColor = SOURCE_COLORS[item.source] ?? "#c8965a";
+  const date = item.publishedAt
+    ? new Date(item.publishedAt).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      })
+    : null;
+
+  return (
+    <article
+      className={`group relative bg-warm-900 overflow-hidden flex flex-col ${featured ? "md:col-span-2 md:flex-row" : ""}`}
+      style={{
+        ...reveal(delay),
+        borderTop: `3px solid ${accentColor}`,
+      }}
+    >
+      {/* Source masthead strip */}
+      <div
+        className="px-4 pt-3 pb-2 flex items-center justify-between"
+        style={{ background: `${accentColor}14` }}
+      >
+        <span
+          className="font-mono text-[0.6rem] uppercase tracking-[0.2em] font-bold"
+          style={{ color: accentColor }}
+        >
+          {item.source}
+        </span>
+        {date && (
+          <span className="font-mono text-[0.55rem] text-warm-600 tabular-nums">
+            {date}
+          </span>
+        )}
+      </div>
+
+      {/* Body */}
+      <div
+        className={`px-4 pb-4 pt-2 flex flex-col gap-2 flex-1 ${featured ? "md:py-6 md:px-6" : ""}`}
+      >
+        {item.matchedArtist && (
+          <Link
+            href={`/artist/${encodeURIComponent(item.matchedArtist)}`}
+            className="text-[0.65rem] font-mono uppercase tracking-wider transition-colors"
+            style={{ color: `${accentColor}cc` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            ↳ {item.matchedArtist}
+          </Link>
+        )}
+
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <h3
+            className={`font-display font-semibold leading-tight text-warm-100 group-hover:text-amber-accent transition-colors ${featured ? "text-2xl md:text-3xl" : "text-base"}`}
+          >
+            {item.title}
+          </h3>
+        </a>
+
+        {item.summary && (
+          <p
+            className={`text-warm-500 leading-relaxed ${featured ? "text-sm line-clamp-3" : "text-xs line-clamp-2"}`}
+          >
+            {item.summary}
+          </p>
+        )}
+
+        {/* Read link */}
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-auto pt-2 inline-flex items-center gap-1 font-mono text-[0.6rem] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0"
+          style={{ color: accentColor }}
+        >
+          Read story <span>→</span>
+        </a>
+      </div>
+    </article>
+  );
+}
+
 function InThePress({ items }: { items: NewsItem[] }) {
   if (items.length === 0) return null;
 
+  const today = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const [featured, ...rest] = items;
+
   return (
     <section className="mb-10" style={reveal(0)}>
-      {/* Section label */}
-      <div className="flex items-center gap-4 mb-7">
-        <div className="h-px flex-1 bg-warm-700/50" />
-        <p className="font-mono text-warm-500 text-[0.65rem] uppercase tracking-[0.3em] shrink-0">
-          In the Press
-        </p>
-        <div className="h-px flex-1 bg-warm-700/50" />
+      {/* Newspaper masthead */}
+      <div className="border border-warm-700/60 rounded-t-lg overflow-hidden mb-0">
+        <div className="bg-warm-900 px-6 py-4 flex items-center justify-between gap-4 border-b border-warm-700/60">
+          <div className="h-px flex-1 bg-warm-700/40" />
+          <h2
+            className="font-display text-2xl font-light tracking-[0.25em] text-warm-200 uppercase shrink-0"
+            style={{ letterSpacing: "0.3em" }}
+          >
+            The Encore Press
+          </h2>
+          <div className="h-px flex-1 bg-warm-700/40" />
+        </div>
+        <div className="bg-warm-950 px-6 py-2 flex items-center justify-between">
+          <span className="font-mono text-[0.55rem] text-warm-600 uppercase tracking-widest">
+            {today}
+          </span>
+          <span className="font-mono text-[0.55rem] text-warm-600 uppercase tracking-widest">
+            {items.length} articles ·{" "}
+            {[...new Set(items.map((i) => i.source))].length} sources
+          </span>
+          <span className="font-mono text-[0.55rem] text-warm-600 uppercase tracking-widest">
+            Music Edition
+          </span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-        {items.map((item, i) => (
-          <article
-            key={i}
-            className="py-5 border-b border-warm-800/50 flex flex-col gap-2"
-            style={reveal(i * 40)}
-          >
-            {/* Meta row */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-[0.6rem] px-2 py-0.5 rounded bg-warm-800 text-warm-300 uppercase tracking-wider">
-                {item.source}
-              </span>
-              {item.matchedArtist ? (
-                <Link
-                  href={`/artist/${encodeURIComponent(item.matchedArtist)}`}
-                  className="text-xs text-warm-500 hover:text-warm-300 transition-colors"
-                >
-                  {item.matchedArtist}
-                </Link>
-              ) : (
-                <span className="text-xs text-warm-600 italic">music news</span>
-              )}
-              {item.publishedAt && (
-                <span className="font-mono text-xs text-warm-600 tabular-nums">
-                  {new Date(item.publishedAt).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-              )}
-            </div>
-
-            {/* Headline */}
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group text-warm-100 text-sm font-medium hover:text-amber-accent transition-colors leading-snug inline-flex items-start gap-1"
-            >
-              <span>{item.title}</span>
-              <span className="opacity-0 group-hover:opacity-100 translate-x-0 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5 text-amber-accent">
-                →
-              </span>
-            </a>
-
-            {item.summary && (
-              <p className="text-warm-500 text-xs leading-relaxed line-clamp-2">
-                {item.summary}
-              </p>
-            )}
-          </article>
-        ))}
+      {/* Card grid */}
+      <div className="border border-t-0 border-warm-700/60 rounded-b-lg overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y divide-warm-800/60">
+          {/* Featured story spans full width */}
+          {featured && <PressCard item={featured} featured={true} delay={60} />}
+          {/* Rest in 3-col grid (first featured takes 2 cols so rest align to col 3 on first row) */}
+          {rest.map((item, i) => (
+            <PressCard
+              key={i + 1}
+              item={item}
+              featured={false}
+              delay={80 + i * 30}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
