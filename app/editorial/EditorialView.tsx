@@ -389,12 +389,16 @@ function InThePress({ items }: { items: NewsItem[] }) {
               <span className="font-mono text-[0.6rem] px-2 py-0.5 rounded bg-warm-800 text-warm-300 uppercase tracking-wider">
                 {item.source}
               </span>
-              <Link
-                href={`/artist/${encodeURIComponent(item.matchedArtist)}`}
-                className="text-xs text-warm-500 hover:text-warm-300 transition-colors"
-              >
-                {item.matchedArtist}
-              </Link>
+              {item.matchedArtist ? (
+                <Link
+                  href={`/artist/${encodeURIComponent(item.matchedArtist)}`}
+                  className="text-xs text-warm-500 hover:text-warm-300 transition-colors"
+                >
+                  {item.matchedArtist}
+                </Link>
+              ) : (
+                <span className="text-xs text-warm-600 italic">music news</span>
+              )}
               {item.publishedAt && (
                 <span className="font-mono text-xs text-warm-600 tabular-nums">
                   {new Date(item.publishedAt).toLocaleDateString(undefined, {
