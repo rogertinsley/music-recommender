@@ -29,6 +29,10 @@
   --foreground: #ede8df;
 }
 
+html {
+  font-size: 17px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
