@@ -1,5 +1,11 @@
 # Encore
 
+[![CI/CD](https://github.com/rogertinsley/encore/actions/workflows/ci.yml/badge.svg)](https://github.com/rogertinsley/encore/actions/workflows/ci.yml)
+[![Docker](https://ghcr-badge.egpl.dev/rogertinsley/encore/latest_tag?trim=major&label=ghcr.io)](https://github.com/rogertinsley/encore/pkgs/container/encore)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06b6d4?logo=tailwindcss&logoColor=white)
+
 A personal music display and discovery app. Connects to an EverSolo music player for live playback state, enriches it with artist visuals and metadata, and surfaces recommendations and new releases based on Last.FM listening history.
 
 ## Features
@@ -9,19 +15,23 @@ A personal music display and discovery app. Connects to an EverSolo music player
 - **New Releases** — albums, EPs, and singles from artists you listen to, within a configurable date window. Refreshed daily.
 - **Artist pages** — bio, top tracks, albums with cover art, similar artists.
 
+## Stack
+
+| Layer      | Tech                                           |
+| ---------- | ---------------------------------------------- |
+| Frontend   | Next.js 15 (App Router), React 19, Tailwind v4 |
+| Language   | TypeScript 5                                   |
+| Database   | PostgreSQL 16 + Prisma 6                       |
+| Cache      | Redis 7 (now-playing state, page caching)      |
+| Deployment | Docker Compose                                 |
+
 ## Docker image
 
 ```
-ghcr.io/rogertinsley/encore:latest
+docker pull ghcr.io/rogertinsley/encore:latest
 ```
 
-## Stack
-
-- Next.js 15 (App Router) + TypeScript
-- PostgreSQL + Prisma 6
-- Redis (now-playing state, page caching)
-- Tailwind v4
-- Docker Compose
+Built and pushed to GHCR automatically on every merge to `main`.
 
 ## Setup
 
@@ -31,14 +41,12 @@ ghcr.io/rogertinsley/encore:latest
 cp .env.example .env
 ```
 
-Fill in:
-
-| Variable            | Where to get it                                              |
-| ------------------- | ------------------------------------------------------------ |
-| `LASTFM_API_KEY`    | https://www.last.fm/api/account/create                       |
-| `LASTFM_USERNAME`   | Your Last.FM username                                        |
-| `FANART_TV_API_KEY` | https://fanart.tv/get-an-api-key (project key, not personal) |
-| `EVERSOLO_HOST`     | IP address of your EverSolo device (default: 192.168.1.138)  |
+| Variable            | Where to get it                                               |
+| ------------------- | ------------------------------------------------------------- |
+| `LASTFM_API_KEY`    | https://www.last.fm/api/account/create                        |
+| `LASTFM_USERNAME`   | Your Last.FM username                                         |
+| `FANART_TV_API_KEY` | https://fanart.tv/get-an-api-key (project key, not personal)  |
+| `EVERSOLO_HOST`     | IP address of your EverSolo device (default: `192.168.1.138`) |
 
 ### 2. Run with Docker
 
@@ -78,10 +86,12 @@ Background jobs start automatically when the server boots (`instrumentation.ts`)
 
 Each job skips if data is less than 20 hours old, so server restarts don't trigger redundant API calls.
 
-External APIs used:
+## External APIs
 
-- [Last.FM](https://www.last.fm/api) — artist/album metadata, listening history
-- [MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_API) — artist MBIDs, release groups (rate-limited: 1 req/s)
-- [Fanart.tv](https://fanart.tv/api-docs/music-api/) — artist backgrounds and thumbnails
-- [Cover Art Archive](https://coverartarchive.org/) — album art (no key required)
-- [EverSolo](https://www.eversolo.com/) — live playback state and controls via local HTTP API (port 9529)
+| API                                                        | Usage                                                           |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| [Last.FM](https://www.last.fm/api)                         | Artist/album metadata, listening history                        |
+| [MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_API) | Artist MBIDs, release groups (rate-limited: 1 req/s)            |
+| [Fanart.tv](https://fanart.tv/api-docs/music-api/)         | Artist backgrounds and thumbnails                               |
+| [Cover Art Archive](https://coverartarchive.org/)          | Album art (no key required)                                     |
+| [EverSolo](https://www.eversolo.com/)                      | Live playback state and controls via local HTTP API (port 9529) |
