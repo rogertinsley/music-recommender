@@ -1,0 +1,59 @@
+# Production compose file — pulls the pre-built image from GHCR.
+#
+# 1. Copy and fill in your secrets:
+#      cp .env.example .env
+#
+# 2. Start everything:
+#      docker compose -f docker-compose.prod.yml up -d
+#
+# 3. To update to the latest image:
+#      docker compose -f docker-compose.prod.yml pull
+#      docker compose -f docker-compose.prod.yml up -d
+
+services:
+  app:
+    image: ghcr.io/rogertinsley/encore:latest
+    ports:
+      - "3567:3567"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-encore}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-encore}
+      REDIS_URL: redis://cache:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-encore}
+      POSTGRES_USER: ${POSTGRES_USER:-encore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-encore}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  cache:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
