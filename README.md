@@ -9,6 +9,12 @@ A personal music display and discovery app. Connects to an EverSolo music player
 - **New Releases** — albums, EPs, and singles from artists you listen to, within a configurable date window. Refreshed daily.
 - **Artist pages** — bio, top tracks, albums with cover art, similar artists.
 
+## Docker image
+
+```
+ghcr.io/rogertinsley/encore:latest
+```
+
 ## Stack
 
 - Next.js 15 (App Router) + TypeScript
